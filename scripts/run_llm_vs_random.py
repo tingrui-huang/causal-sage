@@ -131,6 +131,7 @@ def run_experiment_for_dataset(dataset_name: str,
     )
     resolved_sample_size = dataset_config.get("sample_size")
     n_tag = f"n_{resolved_sample_size}" if resolved_sample_size is not None else "n_fixed"
+    experiments_root = Path(config.TRAINING_RESULTS_DIR) / "llm_vs_random"
     
     # Auto-detect latest skeleton and (optional) LLM direction files.
     #
@@ -404,7 +405,7 @@ def run_experiment_for_dataset(dataset_name: str,
             # Optional: training-time v-structure hard mask (must be identical across LLM vs Random runs)
             'enforce_vstructure_mask': bool(vstructure_in_mask),
             'vstructure_pag_csv_path': str(vstructure_fci_csv_path) if vstructure_fci_csv_path else str(pure_skeleton_path),
-            'output_dir': f'outputs/experiments/llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}/llm_prior',
+            'output_dir': str(experiments_root / dataset_name / n_tag / f"seed_{random_seed}" / run_id / "llm_prior"),
             'run_id': run_id,
         })
 
@@ -437,7 +438,7 @@ def run_experiment_for_dataset(dataset_name: str,
             'enforce_vstructure_mask': bool(vstructure_in_mask),
             # If caller provided a PAG CSV path use it; otherwise default to pure skeleton path.
             'vstructure_pag_csv_path': str(vstructure_fci_csv_path) if vstructure_fci_csv_path else str(pure_skeleton_path),
-            'output_dir': f'outputs/experiments/llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}/random_prior',
+            'output_dir': str(experiments_root / dataset_name / n_tag / f"seed_{random_seed}" / run_id / "random_prior"),
             'run_id': run_id,
         })
         
@@ -539,7 +540,7 @@ def run_experiment_for_dataset(dataset_name: str,
     # Save comparison report (only if both experiments were run)
     # ============================================================================
     if results_llm and results_random:
-        output_dir = Path(f"outputs/experiments/llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}")
+        output_dir = experiments_root / dataset_name / n_tag / f"seed_{random_seed}" / run_id
         output_dir.mkdir(exist_ok=True, parents=True)
         
         with open(output_dir / 'comparison_report.txt', 'w', encoding='utf-8') as f:
@@ -583,7 +584,7 @@ def run_experiment_for_dataset(dataset_name: str,
     # ============================================================================
     # Save run report (ALWAYS, even for random-only)
     # ============================================================================
-    seed_dir = Path(f"outputs/experiments/llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}")
+    seed_dir = experiments_root / dataset_name / n_tag / f"seed_{random_seed}" / run_id
     seed_dir.mkdir(exist_ok=True, parents=True)
     report_path = seed_dir / "run_report.txt"
 
