@@ -127,7 +127,8 @@ VERBOSE = True
 # ============================================================================
 # Centralized defaults used by scripts/run_llm_vs_random.py.
 LLM_VS_RANDOM_DEFAULTS = {
-    "datasets": ["insurance"],
+    # Keep llm-vs-random default aligned with top-level DATASET to avoid confusion.
+    "datasets": [DATASET],
     "run_mode": "both",  # both | llm | random
     "auto_generate_constraint": True,
     "seeds": [5],
