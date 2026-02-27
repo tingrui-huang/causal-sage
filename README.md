@@ -1,22 +1,56 @@
 # CausalSAGE
 
-Codebase for PAG-to-DAG refinement experiments in CausalSAGE.
+**CausalSAGE** is a differentiable PAG-to-DAG refinement framework that resolves
+orientation ambiguity in Markov equivalence classes and outputs fully directed DAGs.
 
-## Scope
+This repository contains the official implementation used in our experiments.
 
-- Main datasets in this repository: `alarm`, `insurance`
-- Main experiment entrypoint: `scripts/run_llm_vs_random.py`
-- Goal: reproduce paper-aligned settings and provide a clean, maintainable layout
+## Overview
+
+Constraint-based discovery methods such as FCI/RFCI often output partially
+directed graphs (PAGs). Many downstream tasks require a fully oriented DAG.
+
+CausalSAGE refines PAG-derived structures through:
+
+- state-level expansion
+- differentiable block-wise optimization
+- directional priors (random or LLM-based)
+- cycle-aware DAG validation/projection
+
+## Visuals
+
+Repository figures are organized under `assets/figures/`.
+
+Motivation:
+
+![CausalSAGE Motivation](assets/figures/motivation_figure.png)
+
+Framework:
+
+![CausalSAGE Framework](assets/figures/framework_figure.png)
+
+Figure files:
+
+- `assets/figures/motivation_figure.png`
+- `assets/figures/framework_figure.png`
+
+## Key Features
+
+- Differentiable PAG-to-DAG refinement
+- Random-prior and LLM-prior runs in one entrypoint
+- Unified `config.py` for paths and runtime settings
+- Constraint discovery and refinement split into clear modules
 
 ## Repository Structure
 
-- `config.py`: single source of truth for dataset paths and runtime settings
+- `config.py`: central configuration (paths, defaults, dataset settings)
+- `assets/figures/`: paper figures for README/docs
 - `scripts/`: runnable entrypoints
-- `src/refinement/`: PAG-to-DAG differentiable refinement implementation
-- `src/constraints/`: constraint discovery modules
+- `src/refinement/`: differentiable refinement core
+- `src/constraints/`: FCI/RFCI/LLM constraint modules
 - `data/<dataset>/`: dataset artifacts (`*_data_*.csv`, `metadata*.json`, `*.bif`)
-- `outputs/constraints/`: FCI/RFCI/LLM constraint outputs
-- `outputs/experiments/`: refinement experiment outputs
+- `outputs/constraints/`: constraint outputs
+- `outputs/experiments/`: refinement outputs
 
 ## Environment
 
@@ -28,26 +62,19 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### 1) Check config
-
-Open `config.py` and confirm:
-
-- `DATASET = 'alarm'`
-- sample-size and training settings match your run target
-
-### 2) Run random-prior refinement (paper-aligned style)
+Run random-prior refinement (paper-aligned style):
 
 ```bash
 python scripts/run_llm_vs_random.py --datasets alarm --run_mode random --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
 ```
 
-### 3) Run llm-prior refinement
+Run LLM-prior refinement:
 
 ```bash
 python scripts/run_llm_vs_random.py --datasets alarm --run_mode llm --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
 ```
 
-### 4) Run both priors in one command
+Run both priors:
 
 ```bash
 python scripts/run_llm_vs_random.py --datasets alarm --run_mode both --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
@@ -55,30 +82,31 @@ python scripts/run_llm_vs_random.py --datasets alarm --run_mode both --seeds 5 -
 
 ## Output Locations
 
-Example outputs are written under:
+Example experiment outputs:
 
 - `outputs/experiments/llm_vs_random/alarm/n_10000/seed_5/<run_id>/run_report.txt`
 - `outputs/experiments/llm_vs_random/alarm/n_10000/seed_5/<run_id>/random_prior/complete_metrics.json`
 - `outputs/experiments/llm_vs_random/alarm/n_10000/seed_5/<run_id>/llm_prior/complete_metrics.json`
 - `outputs/experiments/llm_vs_random/alarm/n_10000/seed_5/<run_id>/comparison_report.txt`
 
-Constraint outputs are written under:
+Constraint outputs:
 
 - `outputs/constraints/<dataset>/n_<sample_size>/`
 
-## Expected Pattern (alarm)
+## Expected Result Pattern (alarm)
 
-For paper-aligned random-prior runs (`seed=5`, `n=10000`, `epochs=140`), results should be close to:
+For paper-aligned random-prior runs (`seed=5`, `n=10000`, `epochs=140`):
 
-- Edge F1: `0.88`
-- Full SHD: `8`
+- Edge F1 approximately `0.88`
+- Full SHD approximately `8`
 
 Small floating-point differences are acceptable.
 
-## Reproducibility Notes
+## Reproducibility
 
-- Random seed is controlled in config and scripts.
-- Results are deterministic given:
-  - same input data and metadata
-  - same constraint skeleton files
-  - same config and dependency versions
+Results are reproducible given:
+
+- identical dataset and metadata
+- identical constraint files
+- fixed random seed
+- same dependency versions
