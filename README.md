@@ -1,4 +1,6 @@
-# CausalSAGE
+# No More Maybe-Arrows: Resolving Causal Uncertainty by Breaking Symmetries
+
+## CausalSAGE
 
 **CausalSAGE** is a differentiable PAG-to-DAG refinement framework that resolves
 orientation ambiguity in Markov equivalence classes and outputs fully directed DAGs.
@@ -152,7 +154,7 @@ If you find this work useful, please cite:
 
 ```bibtex
 @misc{huang2026causalsage,
-  title={From PAGs to DAGs: Resolving Causal Uncertainty by Breaking Symmetries},
+  title={No More Maybe-Arrows: Resolving Causal Uncertainty by Breaking Symmetries},
   author={Huang, Tingrui and Dhami, Devendra Singh},
   year={2026}
 }
