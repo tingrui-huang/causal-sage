@@ -17,22 +17,24 @@ CausalSAGE refines PAG-derived structures through:
 - directional priors (random or LLM-based)
 - cycle-aware DAG validation/projection
 
-## Visuals
+### What makes CausalSAGE different?
 
-Repository figures are organized under `assets/figures/`.
+Unlike direct DAG learners, CausalSAGE:
 
-Motivation:
+- starts from constraint-based PAG outputs
+- preserves skeleton structure during refinement
+- resolves orientation ambiguity via differentiable optimization
+- remains stable on medium-scale graphs where direct learners can degrade
+
+## Method Overview
+
+### Motivation
 
 ![CausalSAGE Motivation](assets/figures/motivation_figure.png)
 
-Framework:
+### Framework
 
 ![CausalSAGE Framework](assets/figures/framework_figure.png)
-
-Figure files:
-
-- `assets/figures/motivation_figure.png`
-- `assets/figures/framework_figure.png`
 
 ## Key Features
 
@@ -65,19 +67,52 @@ pip install -r requirements.txt
 Run random-prior refinement (paper-aligned style):
 
 ```bash
-python scripts/run_llm_vs_random.py --datasets alarm --run_mode random --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
+python scripts/run_llm_vs_random.py \
+  --datasets alarm \
+  --run_mode random \
+  --seeds 5 \
+  --sample_size 10000 \
+  --epochs 140 \
+  --high_conf 0.9 \
+  --low_conf 0.1 \
+  --reconstruction_mode group_ce \
+  --vstructure_in_mask \
+  --dag_check \
+  --dag_project_on_cycle
 ```
 
 Run LLM-prior refinement:
 
 ```bash
-python scripts/run_llm_vs_random.py --datasets alarm --run_mode llm --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
+python scripts/run_llm_vs_random.py \
+  --datasets alarm \
+  --run_mode llm \
+  --seeds 5 \
+  --sample_size 10000 \
+  --epochs 140 \
+  --high_conf 0.9 \
+  --low_conf 0.1 \
+  --reconstruction_mode group_ce \
+  --vstructure_in_mask \
+  --dag_check \
+  --dag_project_on_cycle
 ```
 
 Run both priors:
 
 ```bash
-python scripts/run_llm_vs_random.py --datasets alarm --run_mode both --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
+python scripts/run_llm_vs_random.py \
+  --datasets alarm \
+  --run_mode both \
+  --seeds 5 \
+  --sample_size 10000 \
+  --epochs 140 \
+  --high_conf 0.9 \
+  --low_conf 0.1 \
+  --reconstruction_mode group_ce \
+  --vstructure_in_mask \
+  --dag_check \
+  --dag_project_on_cycle
 ```
 
 ## Output Locations
@@ -110,3 +145,15 @@ Results are reproducible given:
 - identical constraint files
 - fixed random seed
 - same dependency versions
+
+## Citation
+
+If you find this work useful, please cite:
+
+```bibtex
+@misc{huang2026causalsage,
+  title={From PAGs to DAGs: Resolving Causal Uncertainty by Breaking Symmetries},
+  author={Huang, Tingrui and Dhami, Devendra Singh},
+  year={2026}
+}
+```
