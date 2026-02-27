@@ -1,0 +1,52 @@
+============================================================
+Causal Discovery Report: FCI
+============================================================
+Generated: 2026-02-20 18:37:53
+Total Nodes: 27
+Total Iterations: N/A
+============================================================
+
+ACCEPTED CAUSAL EDGES: 34
+------------------------------------------------------------
+   1. [YES] Accident -> OtherCarCost
+   2. [YES] Accident -> ThisCarDam
+   3. [YES] Accident -o ILiCost
+   4. [YES] Age -- SocioEcon
+   5. [YES] Age -> SeniorTrain
+   6. [YES] Age -o RiskAversion
+   7. [YES] Cushioning -- Airbag
+   8. [YES] DrivQuality -> Accident
+   9. [YES] DrivQuality -o DrivingSkill
+  10. [YES] DrivingSkill o- DrivHist
+  11. [YES] GoodStudent o- Age
+  12. [YES] MakeModel -- Antilock
+  13. [YES] MakeModel -> Airbag
+  14. [YES] MakeModel -> CarValue
+  15. [YES] Mileage o- CarValue
+  16. [YES] OtherCarCost -> PropCost
+  17. [YES] RiskAversion -> SeniorTrain
+  18. [YES] RiskAversion o- AntiTheft
+  19. [YES] RiskAversion o- DrivHist
+  20. [YES] RiskAversion o- DrivQuality
+  21. [YES] RiskAversion o- HomeBase
+  22. [YES] RuggedAuto -- MakeModel
+  23. [YES] RuggedAuto -> Cushioning
+  24. [YES] SocioEcon -- AntiTheft
+  25. [YES] SocioEcon -> HomeBase
+  26. [YES] SocioEcon -> MakeModel
+  27. [YES] SocioEcon -o OtherCar
+  28. [YES] ThisCarCost -- CarValue
+  29. [YES] ThisCarCost -> PropCost
+  30. [YES] ThisCarDam -> ThisCarCost
+  31. [YES] VehicleYear -- Antilock
+  32. [YES] VehicleYear -- RuggedAuto
+  33. [YES] VehicleYear -> Airbag
+  34. [YES] VehicleYear -> CarValue
+
+============================================================
+
+REJECTED EDGES: 0
+------------------------------------------------------------
+  (No edges rejected)
+
+============================================================

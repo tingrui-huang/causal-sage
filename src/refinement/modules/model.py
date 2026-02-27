@@ -253,8 +253,8 @@ if __name__ == "__main__":
     # Test the model
     import sys
     sys.path.append('..')
-    from modules.data_loader import CausalDataLoader
-    from modules.prior_builder import PriorBuilder
+    from src.refinement.modules.data_loader import CausalDataLoader
+    from src.refinement.modules.prior_builder import PriorBuilder
     
     # Load data
     loader = CausalDataLoader(

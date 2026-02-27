@@ -21,13 +21,13 @@ import time
 import os
 import sys
 
-from modules.data_loader import CausalDataLoader
-from modules.prior_builder import PriorBuilder
-from modules.model import CausalDiscoveryModel
-from modules.loss import LossComputer
-from modules.evaluator import CausalGraphEvaluator
-from modules.metrics import compute_unresolved_ratio, compute_sparsity_metrics
-from modules.dag_check import (
+from src.refinement.modules.data_loader import CausalDataLoader
+from src.refinement.modules.prior_builder import PriorBuilder
+from src.refinement.modules.model import CausalDiscoveryModel
+from src.refinement.modules.loss import LossComputer
+from src.refinement.modules.evaluator import CausalGraphEvaluator
+from src.refinement.modules.metrics import compute_unresolved_ratio, compute_sparsity_metrics
+from src.refinement.modules.dag_check import (
     find_one_cycle,
     is_dag_kahn,
     cycle_to_string,
@@ -141,9 +141,7 @@ def train_complete(config: dict):
     fci_baseline_unresolved_ratio = None
     if config.get('fci_skeleton_path'):
         try:
-            import pandas as pd
-            sys.path.insert(0, str(Path(__file__).parent.parent / 'refactored'))
-            from evaluate_fci import parse_fci_csv
+            from src.constraints.evaluate_fci import parse_fci_csv
             
             # Parse FCI CSV to get edge type breakdown
             fci_directed, fci_undirected, edge_counts = parse_fci_csv(config['fci_skeleton_path'])

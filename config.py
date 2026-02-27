@@ -2,8 +2,8 @@
 Unified Configuration for Causal Discovery Pipeline
 
 This single config file controls BOTH:
-1. FCI/LLM algorithms (refactored/)
-2. Neuro-Symbolic training (Neuro-Symbolic-Reasoning/)
+1. Constraint discovery pipeline
+2. PAG-to-DAG refinement training
 
 Usage:
     - Edit this file to change any settings
@@ -19,8 +19,12 @@ from typing import Optional, Dict
 # PROJECT PATHS
 # ============================================================================
 PROJECT_ROOT = Path(__file__).parent
-REFACTORED_DIR = PROJECT_ROOT / 'refactored'
-NEURO_SYMBOLIC_DIR = PROJECT_ROOT / 'Neuro-Symbolic-Reasoning'
+SRC_DIR = PROJECT_ROOT / 'src'
+DATA_DIR = PROJECT_ROOT / 'data'
+OUTPUTS_DIR = PROJECT_ROOT / 'outputs'
+CONSTRAINT_OUTPUTS_DIR = OUTPUTS_DIR / 'constraints'
+# Backward-compatible alias: older path templates still use NEURO_SYMBOLIC_DIR / "data" / ...
+NEURO_SYMBOLIC_DIR = PROJECT_ROOT
 
 # ============================================================================
 # DATASET SELECTION
@@ -33,7 +37,7 @@ DATASET = os.environ.get('DATASET', 'alarm')
 # SAMPLE SIZE SETTINGS (for scalable N-sweep experiments)
 # ============================================================================
 # When enabled, non-pigs/link datasets will try to resolve dataset_data_<N>.csv
-# style files first, then fall back to legacy fixed paths.
+# style files first, then fall back to historical fixed paths.
 ENABLE_SAMPLE_SIZE_SWEEP = True
 SAMPLE_SIZE = 10000
 
@@ -51,7 +55,7 @@ FCI_ALPHA = 0.05
 # STEP 1b: RFCI ALGORITHM SETTINGS (for large graphs)
 # ============================================================================
 # NOTE: Your installed causal-learn package does not include RFCI, so RFCI is
-# run via Java Tetrad (see refactored/main_rfci.py and refactored/third_party/tetrad/).
+# run via Java Tetrad (see src/constraints/third_party/tetrad/RunRfci.java).
 #
 # We keep RFCI config separate so you can tune it for pigs/link without affecting FCI.
 RFCI_ALPHA = FCI_ALPHA
@@ -119,18 +123,59 @@ LOG_INTERVAL = 20  # Print training stats every N epochs
 VERBOSE = True
 
 # ============================================================================
+# STEP 4: LLM-vs-Random experiment defaults
+# ============================================================================
+# Centralized defaults used by scripts/run_llm_vs_random.py.
+LLM_VS_RANDOM_DEFAULTS = {
+    # Keep llm-vs-random default aligned with top-level DATASET to avoid confusion.
+    "datasets": [DATASET],
+    "run_mode": "both",  # both | llm | random
+    "auto_generate_constraint": True,
+    "seeds": [5],
+    "high_confidence": 0.9,
+    "low_confidence": 0.1,
+    "n_epochs": 140,
+    "reconstruction_mode": "group_ce",
+    "lambda_group_override": None,
+    "lambda_cycle_override": 5.0,
+    "lambda_skeleton_override": None,
+    "use_vstructure_postprocess": False,
+    "vstructure_fci_csv_path": None,
+    "run_id": None,
+    "vstructure_in_mask": True,
+    "dag_check": True,
+    "dag_project_on_cycle": True,
+    "tie_blocks": False,
+    "tie_method": "mean",
+    "batch_size": None,
+    "sample_size": None,
+}
+
+# Dataset-specific refinement hyperparameters used in llm-vs-random runs.
+LLM_VS_RANDOM_DATASET_HPARAMS = {
+    "sachs": {"lambda_group": 0.01, "lambda_cycle": 5.0, "edge_threshold": 0.1},
+    "alarm": {"lambda_group": 0.01, "lambda_cycle": 5.0, "edge_threshold": 0.1},
+    "andes": {"lambda_group": 0.01, "lambda_cycle": 5.0, "edge_threshold": 0.1},
+    "child": {"lambda_group": 0.005, "lambda_cycle": 5.0, "edge_threshold": 0.1},
+    "hailfinder": {"lambda_group": 0.01, "lambda_cycle": 5.0, "edge_threshold": 0.08},
+    "win95pts": {"lambda_group": 0.01, "lambda_cycle": 5.0, "edge_threshold": 0.1},
+    "insurance": {"lambda_group": 0.01, "lambda_cycle": 5.0, "edge_threshold": 0.1},
+}
+LLM_VS_RANDOM_HPARAMS_FALLBACK = {"lambda_group": 0.01, "lambda_cycle": 5.0, "edge_threshold": 0.1}
+
+# ============================================================================
 # DATASET-SPECIFIC PATHS
 # ============================================================================
 DATASET_CONFIGS = {
     'alarm': {
         # Data files
         # IMPORTANT: FCI needs variable-level data (37 columns), neural training needs one-hot data (105 columns)
-        'fci_data_path': PROJECT_ROOT / 'alarm_data.csv',  # Variable-level data for FCI (37 vars)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'alarm' / 'alarm_data_10000.csv',  # One-hot data for neural training (105 states)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'alarm' / 'metadata.json',
+        'fci_data_path': DATA_DIR / 'alarm' / 'alarm_data.csv',  # Variable-level data for FCI (37 vars)
+        'data_path': DATA_DIR / 'alarm' / 'alarm_data_10000.csv',  # One-hot data for neural training (105 states)
+        'metadata_path': DATA_DIR / 'alarm' / 'metadata.json',
         
         # Ground truth (for evaluation)
-        'ground_truth_path': PROJECT_ROOT / 'alarm.bif',
+        'ground_truth_path': DATA_DIR / 'alarm' / 'alarm.bif',
         'ground_truth_type': 'bif',  # Type: 'bif', 'json', or None
         
         # Data type
@@ -144,12 +189,12 @@ DATASET_CONFIGS = {
     'insurance': {
         # Data files
         # IMPORTANT: FCI needs variable-level data (27 columns), neural training needs one-hot data (88 columns)
-        'fci_data_path': PROJECT_ROOT / 'insurance_data.csv',  # Variable-level data for FCI (27 vars)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'insurance' / 'insurance_data_10000.csv',  # One-hot data for neural training (88 states)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'insurance' / 'metadata.json',
+        'fci_data_path': DATA_DIR / 'insurance' / 'insurance_data.csv',  # Variable-level data for FCI (27 vars)
+        'data_path': DATA_DIR / 'insurance' / 'insurance_data_10000.csv',  # One-hot data for neural training (88 states)
+        'metadata_path': DATA_DIR / 'insurance' / 'metadata.json',
         
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'insurance' / 'insurance.bif',
+        'ground_truth_path': DATA_DIR / 'insurance' / 'insurance.bif',
         'ground_truth_type': 'bif',  # Type: 'bif', 'json', or None
         
         # Data type
@@ -162,47 +207,47 @@ DATASET_CONFIGS = {
     
     'tuebingen_pair0001': {
         # Data files (generated by generate_tuebingen_data.py)
-        'fci_data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0001' / 'pair0001_data_variable.csv',  # For FCI (2 columns)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0001' / 'pair0001_data.csv',  # For neural network (10 columns one-hot)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0001' / 'metadata.json',
+        'fci_data_path': DATA_DIR / 'tuebingen' / 'pair0001' / 'pair0001_data_variable.csv',  # For FCI (2 columns)
+        'data_path': DATA_DIR / 'tuebingen' / 'pair0001' / 'pair0001_data.csv',  # For neural network (10 columns one-hot)
+        'metadata_path': DATA_DIR / 'tuebingen' / 'pair0001' / 'metadata.json',
         
         # Ground truth
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0001' / 'pair0001_ground_truth.txt',
+        'ground_truth_path': DATA_DIR / 'tuebingen' / 'pair0001' / 'pair0001_ground_truth.txt',
         'ground_truth_type': 'edge_list',
         
         # Data type (now discretized via quantile binning)
         'data_type': 'discrete',  # Discretized from continuous
         
         # FCI/LLM outputs (generated with semantic variable names)
-        'fci_skeleton_path': PROJECT_ROOT / 'refactored' / 'outputs' / 'tuebingen_pair0001' / 'edges_FCI_20251226_012031.csv',
-        'llm_direction_path': PROJECT_ROOT / 'refactored' / 'outputs' / 'tuebingen_pair0001' / 'edges_FCI_LLM_GPT35_20251226_012044.csv',
+        'fci_skeleton_path': CONSTRAINT_OUTPUTS_DIR / 'tuebingen_pair0001' / 'edges_FCI_20251226_012031.csv',
+        'llm_direction_path': CONSTRAINT_OUTPUTS_DIR / 'tuebingen_pair0001' / 'edges_FCI_LLM_GPT35_20251226_012044.csv',
     },
     
     # Legacy alias for backward compatibility
     'tuebingen_pair1': {
         # Data files (generated by generate_tuebingen_data.py)
-        'fci_data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0001' / 'pair0001_data_variable.csv',  # For FCI (2 columns)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0001' / 'pair0001_data.csv',  # For neural network (10 columns one-hot)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0001' / 'metadata.json',
+        'fci_data_path': DATA_DIR / 'tuebingen' / 'pair0001' / 'pair0001_data_variable.csv',  # For FCI (2 columns)
+        'data_path': DATA_DIR / 'tuebingen' / 'pair0001' / 'pair0001_data.csv',  # For neural network (10 columns one-hot)
+        'metadata_path': DATA_DIR / 'tuebingen' / 'pair0001' / 'metadata.json',
         
         # Ground truth
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0001' / 'pair0001_ground_truth.txt',
+        'ground_truth_path': DATA_DIR / 'tuebingen' / 'pair0001' / 'pair0001_ground_truth.txt',
         'ground_truth_type': 'edge_list',
         
         # Data type (now discretized via quantile binning)
         'data_type': 'discrete',  # Discretized from continuous
         
         # FCI/LLM outputs (generated with semantic variable names)
-        'fci_skeleton_path': PROJECT_ROOT / 'refactored' / 'outputs' / 'tuebingen_pair0001' / 'edges_FCI_20251226_012031.csv',
-        'llm_direction_path': PROJECT_ROOT / 'refactored' / 'outputs' / 'tuebingen_pair0001' / 'edges_FCI_LLM_GPT35_20251226_012044.csv',
+        'fci_skeleton_path': CONSTRAINT_OUTPUTS_DIR / 'tuebingen_pair0001' / 'edges_FCI_20251226_012031.csv',
+        'llm_direction_path': CONSTRAINT_OUTPUTS_DIR / 'tuebingen_pair0001' / 'edges_FCI_LLM_GPT35_20251226_012044.csv',
     },
     
     # Additional Tuebingen pairs (add more as needed)
     'tuebingen_pair0002': {
-        'fci_data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0002' / 'pair0002_data_variable.csv',
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0002' / 'pair0002_data.csv',
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0002' / 'metadata.json',
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0002' / 'pair0002_ground_truth.txt',
+        'fci_data_path': DATA_DIR / 'tuebingen' / 'pair0002' / 'pair0002_data_variable.csv',
+        'data_path': DATA_DIR / 'tuebingen' / 'pair0002' / 'pair0002_data.csv',
+        'metadata_path': DATA_DIR / 'tuebingen' / 'pair0002' / 'metadata.json',
+        'ground_truth_path': DATA_DIR / 'tuebingen' / 'pair0002' / 'pair0002_ground_truth.txt',
         'ground_truth_type': 'edge_list',
         'data_type': 'discrete',
         'fci_skeleton_path': None,
@@ -210,10 +255,10 @@ DATASET_CONFIGS = {
     },
     
     'tuebingen_pair0003': {
-        'fci_data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0003' / 'pair0003_data_variable.csv',
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0003' / 'pair0003_data.csv',
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0003' / 'metadata.json',
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0003' / 'pair0003_ground_truth.txt',
+        'fci_data_path': DATA_DIR / 'tuebingen' / 'pair0003' / 'pair0003_data_variable.csv',
+        'data_path': DATA_DIR / 'tuebingen' / 'pair0003' / 'pair0003_data.csv',
+        'metadata_path': DATA_DIR / 'tuebingen' / 'pair0003' / 'metadata.json',
+        'ground_truth_path': DATA_DIR / 'tuebingen' / 'pair0003' / 'pair0003_ground_truth.txt',
         'ground_truth_type': 'edge_list',
         'data_type': 'discrete',
         'fci_skeleton_path': None,
@@ -221,10 +266,10 @@ DATASET_CONFIGS = {
     },
     
     'tuebingen_pair0004': {
-        'fci_data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0004' / 'pair0004_data_variable.csv',
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0004' / 'pair0004_data.csv',
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0004' / 'metadata.json',
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0004' / 'pair0004_ground_truth.txt',
+        'fci_data_path': DATA_DIR / 'tuebingen' / 'pair0004' / 'pair0004_data_variable.csv',
+        'data_path': DATA_DIR / 'tuebingen' / 'pair0004' / 'pair0004_data.csv',
+        'metadata_path': DATA_DIR / 'tuebingen' / 'pair0004' / 'metadata.json',
+        'ground_truth_path': DATA_DIR / 'tuebingen' / 'pair0004' / 'pair0004_ground_truth.txt',
         'ground_truth_type': 'edge_list',
         'data_type': 'discrete',
         'fci_skeleton_path': None,
@@ -232,10 +277,10 @@ DATASET_CONFIGS = {
     },
     
     'tuebingen_pair0005': {
-        'fci_data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0005' / 'pair0005_data_variable.csv',
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0005' / 'pair0005_data.csv',
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0005' / 'metadata.json',
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / 'pair0005' / 'pair0005_ground_truth.txt',
+        'fci_data_path': DATA_DIR / 'tuebingen' / 'pair0005' / 'pair0005_data_variable.csv',
+        'data_path': DATA_DIR / 'tuebingen' / 'pair0005' / 'pair0005_data.csv',
+        'metadata_path': DATA_DIR / 'tuebingen' / 'pair0005' / 'metadata.json',
+        'ground_truth_path': DATA_DIR / 'tuebingen' / 'pair0005' / 'pair0005_ground_truth.txt',
         'ground_truth_type': 'edge_list',
         'data_type': 'discrete',
         'fci_skeleton_path': None,
@@ -246,11 +291,11 @@ DATASET_CONFIGS = {
         # Data files
         # IMPORTANT: FCI needs variable-level data (11 columns), neural training needs one-hot data (~33 columns)
         'fci_data_path': PROJECT_ROOT / 'sachs_data_variable.csv',  # Variable-level data for FCI (11 vars)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'sachs' / 'sachs_data.csv',  # One-hot data for neural training (~33 states)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'sachs' / 'metadata.json',
+        'data_path': DATA_DIR / 'sachs' / 'sachs_data.csv',  # One-hot data for neural training (~33 states)
+        'metadata_path': DATA_DIR / 'sachs' / 'metadata.json',
         
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'sachs' / 'sachs_ground_truth.txt',
+        'ground_truth_path': DATA_DIR / 'sachs' / 'sachs_ground_truth.txt',
         'ground_truth_type': 'edge_list',  # Type: 'bif', 'json', 'edge_list', or None
         
         # Data type
@@ -265,11 +310,11 @@ DATASET_CONFIGS = {
         # Data files
         # IMPORTANT: FCI needs variable-level data (20 columns), neural training needs one-hot data
         'fci_data_path': PROJECT_ROOT / 'child_data_variable.csv',  # Variable-level data for FCI (20 vars)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'child' / 'child_data.csv',  # One-hot data for neural training
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'child' / 'metadata.json',
+        'data_path': DATA_DIR / 'child' / 'child_data.csv',  # One-hot data for neural training
+        'metadata_path': DATA_DIR / 'child' / 'metadata.json',
         
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'child' / 'child_ground_truth.txt',
+        'ground_truth_path': DATA_DIR / 'child' / 'child_ground_truth.txt',
         'ground_truth_type': 'edge_list',  # Type: 'bif', 'json', 'edge_list', or None
         
         # Data type
@@ -284,11 +329,11 @@ DATASET_CONFIGS = {
         # Data files
         # IMPORTANT: FCI needs variable-level data (56 columns), neural training needs one-hot data (223 columns)
         'fci_data_path': PROJECT_ROOT / 'hailfinder_data_variable.csv',  # Variable-level data for FCI (56 vars)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'hailfinder' / 'hailfinder_data.csv',  # One-hot data for neural training (223 states)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'hailfinder' / 'metadata.json',
+        'data_path': DATA_DIR / 'hailfinder' / 'hailfinder_data.csv',  # One-hot data for neural training (223 states)
+        'metadata_path': DATA_DIR / 'hailfinder' / 'metadata.json',
         
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'hailfinder' / 'hailfinder_ground_truth.txt',
+        'ground_truth_path': DATA_DIR / 'hailfinder' / 'hailfinder_ground_truth.txt',
         'ground_truth_type': 'edge_list',  # Type: 'bif', 'json', 'edge_list', or None
         
         # Data type
@@ -303,11 +348,11 @@ DATASET_CONFIGS = {
         # Data files
         # IMPORTANT: FCI needs variable-level data (76 columns), neural training needs one-hot data (151 columns)
         'fci_data_path': PROJECT_ROOT / 'win95pts_data_variable.csv',  # Variable-level data for FCI (76 vars)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'win95pts' / 'win95pts_data.csv',  # One-hot data for neural training (151 states)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'win95pts' / 'metadata.json',
+        'data_path': DATA_DIR / 'win95pts' / 'win95pts_data.csv',  # One-hot data for neural training (151 states)
+        'metadata_path': DATA_DIR / 'win95pts' / 'metadata.json',
         
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'win95pts' / 'win95pts_ground_truth.txt',
+        'ground_truth_path': DATA_DIR / 'win95pts' / 'win95pts_ground_truth.txt',
         'ground_truth_type': 'edge_list',  # Type: 'bif', 'json', 'edge_list', or None
         
         # Data type
@@ -322,11 +367,11 @@ DATASET_CONFIGS = {
         # Data files
         # IMPORTANT: FCI needs variable-level data (223 columns), neural training needs one-hot data (446 columns)
         'fci_data_path': PROJECT_ROOT / 'andes_data_variable.csv',  # Variable-level data for FCI (223 vars)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'andes' / 'andes_data.csv',  # One-hot data for neural training (446 states)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'andes' / 'metadata.json',
+        'data_path': DATA_DIR / 'andes' / 'andes_data.csv',  # One-hot data for neural training (446 states)
+        'metadata_path': DATA_DIR / 'andes' / 'metadata.json',
         
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'andes' / 'andes_ground_truth.txt',
+        'ground_truth_path': DATA_DIR / 'andes' / 'andes_ground_truth.txt',
         'ground_truth_type': 'edge_list',  # Type: 'bif', 'json', 'edge_list', or None
         
         # Data type
@@ -341,11 +386,11 @@ DATASET_CONFIGS = {
         # Data files
         # IMPORTANT: FCI needs variable-level data (N vars columns), neural training needs one-hot data (sum(states) columns)
         'fci_data_path': PROJECT_ROOT / 'pigs_data_variable.csv',  # Variable-level data for FCI
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'pigs' / 'pigs_data_50000.csv',  # One-hot data for neural training
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'pigs' / 'metadata.json',
+        'data_path': DATA_DIR / 'pigs' / 'pigs_data_50000.csv',  # One-hot data for neural training
+        'metadata_path': DATA_DIR / 'pigs' / 'metadata.json',
 
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'pigs' / 'pigs.bif',
+        'ground_truth_path': DATA_DIR / 'pigs' / 'pigs.bif',
         'ground_truth_type': 'bif',
 
         # Data type
@@ -369,11 +414,11 @@ DATASET_CONFIGS = {
         # Data files
         # IMPORTANT: RFCI/FCI needs variable-level data, neural training needs one-hot data
         'fci_data_path': PROJECT_ROOT / 'link_data_variable.csv',  # Variable-level data for RFCI/FCI
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'link' / 'link_data_50000.csv',  # One-hot for neural training
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'link' / 'metadata.json',
+        'data_path': DATA_DIR / 'link' / 'link_data_50000.csv',  # One-hot for neural training
+        'metadata_path': DATA_DIR / 'link' / 'metadata.json',
 
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'link' / 'link.bif',
+        'ground_truth_path': DATA_DIR / 'link' / 'link.bif',
         'ground_truth_type': 'bif',
 
         # Data type
@@ -395,11 +440,11 @@ DATASET_CONFIGS = {
     'hepar2': {
         # Data files
         'fci_data_path': PROJECT_ROOT / 'hepar2_data_variable.csv',  # Variable-level data for FCI/RFCI
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'HEPAR2' / 'hepar2_data_10000.csv',  # One-hot for training
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'HEPAR2' / 'metadata.json',
+        'data_path': DATA_DIR / 'HEPAR2' / 'hepar2_data_10000.csv',  # One-hot for training
+        'metadata_path': DATA_DIR / 'HEPAR2' / 'metadata.json',
 
         # Ground truth (for evaluation)
-        'ground_truth_path': NEURO_SYMBOLIC_DIR / 'data' / 'HEPAR2' / 'hepar2.bif',
+        'ground_truth_path': DATA_DIR / 'HEPAR2' / 'hepar2.bif',
         'ground_truth_type': 'bif',
 
         # Data type
@@ -464,8 +509,8 @@ def resolve_dataset_paths(dataset_name: str, dataset_cfg: Dict, sample_size: Opt
     Resolve data/fci/metadata paths for a dataset, with optional sample-size awareness.
 
     Behavior:
-      - pigs/link/tuebingen*: keep legacy paths unchanged.
-      - other datasets: prefer sample-size-specific files if present; fallback to legacy paths.
+      - pigs/link/tuebingen*: keep existing fixed paths unchanged.
+      - other datasets: prefer sample-size-specific files if present; fallback to historical fixed paths.
     """
     resolved = dict(dataset_cfg)
 
@@ -512,10 +557,10 @@ def resolve_dataset_paths(dataset_name: str, dataset_cfg: Dict, sample_size: Opt
 # OUTPUT DIRECTORIES
 # ============================================================================
 # FCI/LLM outputs
-FCI_OUTPUT_DIR = REFACTORED_DIR / 'outputs'
+FCI_OUTPUT_DIR = CONSTRAINT_OUTPUTS_DIR
 
 # Neural training results
-TRAINING_RESULTS_DIR = NEURO_SYMBOLIC_DIR / 'results'
+TRAINING_RESULTS_DIR = OUTPUTS_DIR / 'experiments'
 
 # ============================================================================
 # ADVANCED SETTINGS
@@ -539,8 +584,8 @@ def get_current_dataset_config():
     if DATASET == 'tuebingen':
         # In batch mode, return a dummy config (actual configs will be generated per-pair)
         return {
-            'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen',
-            'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen',
+            'data_path': DATA_DIR / 'tuebingen',
+            'metadata_path': DATA_DIR / 'tuebingen',
             'ground_truth_path': None,
             'ground_truth_type': 'edge_list',
             'data_type': 'discrete',
@@ -651,6 +696,19 @@ def get_training_config():
     }
 
 
+def get_llm_vs_random_defaults() -> Dict:
+    """Return a copy of llm-vs-random default runtime settings."""
+    return dict(LLM_VS_RANDOM_DEFAULTS)
+
+
+def get_llm_vs_random_hparams(dataset_name: str) -> Dict:
+    """Return dataset-specific hyperparameters for llm-vs-random runs."""
+    ds = str(dataset_name).lower()
+    if ds in LLM_VS_RANDOM_DATASET_HPARAMS:
+        return dict(LLM_VS_RANDOM_DATASET_HPARAMS[ds])
+    return dict(LLM_VS_RANDOM_HPARAMS_FALLBACK)
+
+
 def _auto_detect_latest_file(pattern, directory):
     """Auto-detect the latest file matching pattern"""
     from pathlib import Path
@@ -687,9 +745,9 @@ def get_constraint_output_dir(dataset_name: Optional[str] = None, sample_size: O
     Get constraint-discovery outputs directory (FCI/RFCI/LLM).
 
     For sample-sweep datasets, use:
-      refactored/outputs/<dataset>/n_<sample_size>/
-    Otherwise keep legacy:
-      refactored/outputs/<dataset>/
+      outputs/constraints/<dataset>/n_<sample_size>/
+    Otherwise keep existing fixed layout:
+      outputs/constraints/<dataset>/
     """
     ds = str(dataset_name or DATASET)
     base = FCI_OUTPUT_DIR / ds
@@ -792,7 +850,7 @@ def get_tuebingen_pair_config(pair_number):
         return DATASET_CONFIGS[dataset_name]
     
     # Generate config dynamically
-    pair_dir = NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / pair_id
+    pair_dir = DATA_DIR / 'tuebingen' / pair_id
     
     config = {
         'fci_data_path': pair_dir / f'{pair_id}_data_variable.csv',  # For FCI (2 columns)
@@ -861,7 +919,7 @@ def get_all_tuebingen_pairs(start=1, end=108):
     
     for i in range(start, end + 1):
         pair_id = f"pair{i:04d}"
-        pair_dir = NEURO_SYMBOLIC_DIR / 'data' / 'tuebingen' / pair_id
+        pair_dir = DATA_DIR / 'tuebingen' / pair_id
         
         # Check if pair data exists
         data_file = pair_dir / f'{pair_id}_data.csv'
@@ -932,4 +990,5 @@ if __name__ == "__main__":
         validate_config()
     except Exception as e:
         print(f"[ERROR] {e}")
+
 

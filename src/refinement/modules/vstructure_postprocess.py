@@ -25,8 +25,8 @@ import torch
 
 # Local imports are optional; keep module usable in analysis scripts.
 try:
-    from modules.data_loader import CausalDataLoader
-    from modules.evaluator import CausalGraphEvaluator
+    from src.refinement.modules.data_loader import CausalDataLoader
+    from src.refinement.modules.evaluator import CausalGraphEvaluator
 except Exception:  # pragma: no cover
     CausalDataLoader = None
     CausalGraphEvaluator = None

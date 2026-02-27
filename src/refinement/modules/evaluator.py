@@ -1190,9 +1190,9 @@ if __name__ == "__main__":
     # Test the evaluator
     import sys
     sys.path.append('..')
-    from modules.data_loader import CausalDataLoader
-    from modules.prior_builder import PriorBuilder
-    from modules.model import CausalDiscoveryModel
+    from src.refinement.modules.data_loader import CausalDataLoader
+    from src.refinement.modules.prior_builder import PriorBuilder
+    from src.refinement.modules.model import CausalDiscoveryModel
     
     # Load data
     loader = CausalDataLoader(
