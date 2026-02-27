@@ -1,119 +1,85 @@
-# Anonymous Reproducibility Package
+# CausalSAGE
 
-This repository is an anonymous reproducibility package for a UAI submission.
-It provides the ALARM pipeline used in the paper and reproduces the reported results with frozen inputs.
+Codebase for PAG-to-DAG refinement experiments in CausalSAGE.
 
 ## Scope
 
-- Dataset: `ALARM`,`insurance`
-- Main entrypoint: `Neuro-Symbolic-Reasoning/experiment_llm_vs_random.py`
-- Goal: reproduce the paper metrics (not re-tune for better new performance)
+- Main datasets in this repository: `alarm`, `insurance`
+- Main experiment entrypoint: `scripts/run_llm_vs_random.py`
+- Goal: reproduce paper-aligned settings and provide a clean, maintainable layout
+
+## Repository Structure
+
+- `config.py`: single source of truth for dataset paths and runtime settings
+- `scripts/`: runnable entrypoints
+- `src/refinement/`: PAG-to-DAG differentiable refinement implementation
+- `src/constraints/`: constraint discovery modules
+- `data/<dataset>/`: dataset artifacts (`*_data_*.csv`, `metadata*.json`, `*.bif`)
+- `outputs/constraints/`: FCI/RFCI/LLM constraint outputs
+- `outputs/experiments/`: refinement experiment outputs
+- `legacy/` (optional): archived pre-refactor code kept only for historical reference
 
 ## Environment
 
-- OS: Linux/macOS/Windows
-- Python: `>=3.10` (validated with `3.13.1` in this package)
-- Install dependencies:
+- Python `>=3.10`
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Repository Modes
+## Quick Start
 
-### 1) Paper-Repro Mode (default, used for review)
+### 1) Check config
 
-Use the frozen files already shipped in this repository:
-- one-hot training CSV
-- metadata JSON
-- FCI skeleton CSV
-- pre-generated LLM skeleton CSV (`edges_FCI_LLM_*.csv`)
+Open `config.py` and confirm:
 
-This mode is expected to match paper numbers.
-No online LLM call is required for LLM-prior runs in this package.
-
-### 2) Regenerate Mode (optional)
-
-You may regenerate data/constraints via provided scripts.
-Regenerated artifacts can lead to different metrics and are not used for strict paper-number reproduction.
-
-## Quick Start (Paper-Repro)
-
-### Step 1: Check config
-
-Open `config.py` and ensure:
 - `DATASET = 'alarm'`
-- paper-aligned settings are kept unchanged
+- sample-size and training settings match your run target
 
-### Step 2: Run experiment (paper-aligned command)
-
-```bash
-cd Neuro-Symbolic-Reasoning
-python experiment_llm_vs_random.py --datasets alarm --run_mode random --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
-```
-
-### Step 2b: Run with pre-generated LLM prior (offline)
-
-LLM-prior mode in this repository uses the shipped LLM skeleton file and does not query external APIs.
+### 2) Run random-prior refinement (paper-aligned style)
 
 ```bash
-cd Neuro-Symbolic-Reasoning
-python experiment_llm_vs_random.py --datasets alarm --run_mode llm --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
+python scripts/run_llm_vs_random.py --datasets alarm --run_mode random --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
 ```
 
-To run both prior configurations in one command:
+### 3) Run llm-prior refinement
 
 ```bash
-cd Neuro-Symbolic-Reasoning
-python experiment_llm_vs_random.py --datasets alarm --run_mode both --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
+python scripts/run_llm_vs_random.py --datasets alarm --run_mode llm --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
 ```
 
-### Step 3: Inspect outputs
+### 4) Run both priors in one command
 
-Outputs are saved under:
+```bash
+python scripts/run_llm_vs_random.py --datasets alarm --run_mode both --seeds 5 --sample_size 10000 --epochs 140 --high_conf 0.9 --low_conf 0.1 --reconstruction_mode group_ce --vstructure_in_mask --dag_check --dag_project_on_cycle
+```
 
-- `Neuro-Symbolic-Reasoning/results/experiment_llm_vs_random/alarm/n_10000/seed_5/<run_id>/run_report.txt`
-- `Neuro-Symbolic-Reasoning/results/experiment_llm_vs_random/alarm/n_10000/seed_5/<run_id>/random_prior/complete_metrics.json`
-- `Neuro-Symbolic-Reasoning/results/experiment_llm_vs_random/alarm/n_10000/seed_5/<run_id>/llm_prior/complete_metrics.json` (when `run_mode=llm` or `both`)
-- `Neuro-Symbolic-Reasoning/results/experiment_llm_vs_random/alarm/n_10000/seed_5/<run_id>/comparison_report.txt` (when `run_mode=both`)
+## Output Locations
 
-## Expected Result Pattern
+Example outputs are written under:
 
-For paper-repro runs (ALARM, `run_mode=random`, `seed=5`, `n=10000`, `epochs=140`), key metrics should match:
+- `outputs/experiments/llm_vs_random/alarm/n_10000/seed_5/<run_id>/run_report.txt`
+- `outputs/experiments/llm_vs_random/alarm/n_10000/seed_5/<run_id>/random_prior/complete_metrics.json`
+- `outputs/experiments/llm_vs_random/alarm/n_10000/seed_5/<run_id>/llm_prior/complete_metrics.json`
+- `outputs/experiments/llm_vs_random/alarm/n_10000/seed_5/<run_id>/comparison_report.txt`
+
+Constraint outputs are written under:
+
+- `outputs/constraints/<dataset>/n_<sample_size>/`
+
+## Expected Pattern (alarm)
+
+For paper-aligned random-prior runs (`seed=5`, `n=10000`, `epochs=140`), results should be close to:
 
 - Edge F1: `0.88`
 - Full SHD: `8`
 
-Small floating-point formatting differences are acceptable.
-
-## Optional: Regenerate Data (Non-paper mode)
-
-```bash
-python Neuro-Symbolic-Reasoning/scripts/generate_multi_sample_size_data.py --datasets alarm --sizes 10000 --seed 42
-```
-
-Then rerun the experiment.
-Note: regenerated data/FCI may produce different metrics.
-
-## Minimal File Structure
-
-- `config.py` (root unified config)
-- `reproducibility.py`
-- `refactored/` (constraint discovery and related modules)
-- `Neuro-Symbolic-Reasoning/experiment_llm_vs_random.py`
-- `Neuro-Symbolic-Reasoning/train_complete.py`
-- `Neuro-Symbolic-Reasoning/modules/`
-- `Neuro-Symbolic-Reasoning/data/alarm/` (frozen artifacts for paper-repro)
+Small floating-point differences are acceptable.
 
 ## Reproducibility Notes
 
-- Random seed is controlled in code/config.
-- Results are deterministic given the same:
-  - input data + metadata
-  - constraint skeleton files
-  - config and dependency versions
-
-## Anonymous Submission Notice
-
-This repository is anonymized for double-blind review.
-All identifying information has been removed from documentation and metadata where possible.
+- Random seed is controlled in config and scripts.
+- Results are deterministic given:
+  - same input data and metadata
+  - same constraint skeleton files
+  - same config and dependency versions

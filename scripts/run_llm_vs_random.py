@@ -36,10 +36,10 @@ import torch
 
 # Import config to get dataset paths
 import config
-from train_complete import train_complete
+from src.refinement.train import train_complete
 
 # Optional postprocess: v-structure hard mask (scheme A)
-from modules.vstructure_postprocess import postprocess_vstructure_on_run_dir
+from src.refinement.modules.vstructure_postprocess import postprocess_vstructure_on_run_dir
 
 
 def run_experiment_for_dataset(dataset_name: str, 
@@ -141,19 +141,16 @@ def run_experiment_for_dataset(dataset_name: str,
     def _run_constraint_discovery_for_dataset() -> bool:
         """
         Run dataset-appropriate constraint discovery (FCI or RFCI) to generate
-        edges files under refactored/outputs/<dataset>/[n_<size>/].
+        edges files under outputs/constraints/<dataset>/[n_<size>/].
         """
         try:
             project_root = Path(__file__).parent.parent
-            refactored_dir = project_root / "refactored"
-
-            if not refactored_dir.exists():
-                print(f"[ERROR] Missing refactored directory: {refactored_dir}")
+            script_path = project_root / "scripts" / "run_constraint_discovery.py"
+            if not script_path.exists():
+                print(f"[ERROR] Missing constraint runner script: {script_path}")
                 return False
 
             constraint_algo = str(dataset_config.get("constraint_algo", "fci")).lower()
-            script_name = "main_rfci.py" if constraint_algo == "rfci" else "main_fci.py"
-            script_path = refactored_dir / script_name
 
             env = os.environ.copy()
             env["DATASET"] = str(dataset_name)
@@ -171,7 +168,7 @@ def run_experiment_for_dataset(dataset_name: str,
 
             res = subprocess.run(
                 [sys.executable, str(script_path)],
-                cwd=str(refactored_dir),
+                cwd=str(project_root),
                 env=env,
                 check=False,
             )
@@ -307,7 +304,7 @@ def run_experiment_for_dataset(dataset_name: str,
         print(f"  1. Set DATASET = '{dataset_name}' in config.py")
         if resolved_sample_size is not None:
             print(f"  2. Set SAMPLE_SIZE = {resolved_sample_size} in config.py")
-        print("  3. Run: python run_pipeline.py  (or run refactored/main_rfci.py or refactored/main_fci.py)")
+        print("  3. Run: python scripts/run_constraint_discovery.py")
         return None
 
     print("\nUsing files:")
@@ -421,7 +418,7 @@ def run_experiment_for_dataset(dataset_name: str,
             # Optional: training-time v-structure hard mask (must be identical across LLM vs Random runs)
             'enforce_vstructure_mask': bool(vstructure_in_mask),
             'vstructure_pag_csv_path': str(vstructure_fci_csv_path) if vstructure_fci_csv_path else str(pure_skeleton_path),
-            'output_dir': f'results/experiment_llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}/llm_prior',
+            'output_dir': f'outputs/experiments/llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}/llm_prior',
             'run_id': run_id,
         })
 
@@ -454,7 +451,7 @@ def run_experiment_for_dataset(dataset_name: str,
             'enforce_vstructure_mask': bool(vstructure_in_mask),
             # If caller provided a PAG CSV path use it; otherwise default to pure skeleton path.
             'vstructure_pag_csv_path': str(vstructure_fci_csv_path) if vstructure_fci_csv_path else str(pure_skeleton_path),
-            'output_dir': f'results/experiment_llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}/random_prior',
+            'output_dir': f'outputs/experiments/llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}/random_prior',
             'run_id': run_id,
         })
         
@@ -556,7 +553,7 @@ def run_experiment_for_dataset(dataset_name: str,
     # Save comparison report (only if both experiments were run)
     # ============================================================================
     if results_llm and results_random:
-        output_dir = Path(f"results/experiment_llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}")
+        output_dir = Path(f"outputs/experiments/llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}")
         output_dir.mkdir(exist_ok=True, parents=True)
         
         with open(output_dir / 'comparison_report.txt', 'w', encoding='utf-8') as f:
@@ -600,7 +597,7 @@ def run_experiment_for_dataset(dataset_name: str,
     # ============================================================================
     # Save run report (ALWAYS, even for random-only)
     # ============================================================================
-    seed_dir = Path(f"results/experiment_llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}")
+    seed_dir = Path(f"outputs/experiments/llm_vs_random/{dataset_name}/{n_tag}/seed_{random_seed}/{run_id}")
     seed_dir.mkdir(exist_ok=True, parents=True)
     report_path = seed_dir / "run_report.txt"
 

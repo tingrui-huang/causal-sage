@@ -2,8 +2,8 @@
 Unified Configuration for Causal Discovery Pipeline
 
 This single config file controls BOTH:
-1. FCI/LLM algorithms (refactored/)
-2. Neuro-Symbolic training (Neuro-Symbolic-Reasoning/)
+1. Constraint discovery pipeline
+2. PAG-to-DAG refinement training
 
 Usage:
     - Edit this file to change any settings
@@ -19,8 +19,12 @@ from typing import Optional, Dict
 # PROJECT PATHS
 # ============================================================================
 PROJECT_ROOT = Path(__file__).parent
-REFACTORED_DIR = PROJECT_ROOT / 'refactored'
-NEURO_SYMBOLIC_DIR = PROJECT_ROOT / 'Neuro-Symbolic-Reasoning'
+SRC_DIR = PROJECT_ROOT / 'src'
+DATA_DIR = PROJECT_ROOT / 'data'
+OUTPUTS_DIR = PROJECT_ROOT / 'outputs'
+CONSTRAINT_OUTPUTS_DIR = OUTPUTS_DIR / 'constraints'
+# Backward-compatible alias: older path templates still use NEURO_SYMBOLIC_DIR / "data" / ...
+NEURO_SYMBOLIC_DIR = PROJECT_ROOT
 
 # ============================================================================
 # DATASET SELECTION
@@ -33,7 +37,7 @@ DATASET = os.environ.get('DATASET', 'alarm')
 # SAMPLE SIZE SETTINGS (for scalable N-sweep experiments)
 # ============================================================================
 # When enabled, non-pigs/link datasets will try to resolve dataset_data_<N>.csv
-# style files first, then fall back to legacy fixed paths.
+# style files first, then fall back to historical fixed paths.
 ENABLE_SAMPLE_SIZE_SWEEP = True
 SAMPLE_SIZE = 10000
 
@@ -51,7 +55,7 @@ FCI_ALPHA = 0.05
 # STEP 1b: RFCI ALGORITHM SETTINGS (for large graphs)
 # ============================================================================
 # NOTE: Your installed causal-learn package does not include RFCI, so RFCI is
-# run via Java Tetrad (see refactored/main_rfci.py and refactored/third_party/tetrad/).
+# run via Java Tetrad (see src/constraints/third_party/tetrad/RunRfci.java).
 #
 # We keep RFCI config separate so you can tune it for pigs/link without affecting FCI.
 RFCI_ALPHA = FCI_ALPHA
@@ -125,12 +129,12 @@ DATASET_CONFIGS = {
     'alarm': {
         # Data files
         # IMPORTANT: FCI needs variable-level data (37 columns), neural training needs one-hot data (105 columns)
-        'fci_data_path': PROJECT_ROOT / 'alarm_data.csv',  # Variable-level data for FCI (37 vars)
-        'data_path': NEURO_SYMBOLIC_DIR / 'data' / 'alarm' / 'alarm_data_10000.csv',  # One-hot data for neural training (105 states)
-        'metadata_path': NEURO_SYMBOLIC_DIR / 'data' / 'alarm' / 'metadata.json',
+        'fci_data_path': DATA_DIR / 'alarm' / 'alarm_data.csv',  # Variable-level data for FCI (37 vars)
+        'data_path': DATA_DIR / 'alarm' / 'alarm_data_10000.csv',  # One-hot data for neural training (105 states)
+        'metadata_path': DATA_DIR / 'alarm' / 'metadata.json',
         
         # Ground truth (for evaluation)
-        'ground_truth_path': PROJECT_ROOT / 'alarm.bif',
+        'ground_truth_path': DATA_DIR / 'alarm' / 'alarm.bif',
         'ground_truth_type': 'bif',  # Type: 'bif', 'json', or None
         
         # Data type
@@ -174,8 +178,8 @@ DATASET_CONFIGS = {
         'data_type': 'discrete',  # Discretized from continuous
         
         # FCI/LLM outputs (generated with semantic variable names)
-        'fci_skeleton_path': PROJECT_ROOT / 'refactored' / 'outputs' / 'tuebingen_pair0001' / 'edges_FCI_20251226_012031.csv',
-        'llm_direction_path': PROJECT_ROOT / 'refactored' / 'outputs' / 'tuebingen_pair0001' / 'edges_FCI_LLM_GPT35_20251226_012044.csv',
+        'fci_skeleton_path': CONSTRAINT_OUTPUTS_DIR / 'tuebingen_pair0001' / 'edges_FCI_20251226_012031.csv',
+        'llm_direction_path': CONSTRAINT_OUTPUTS_DIR / 'tuebingen_pair0001' / 'edges_FCI_LLM_GPT35_20251226_012044.csv',
     },
     
     # Legacy alias for backward compatibility
@@ -193,8 +197,8 @@ DATASET_CONFIGS = {
         'data_type': 'discrete',  # Discretized from continuous
         
         # FCI/LLM outputs (generated with semantic variable names)
-        'fci_skeleton_path': PROJECT_ROOT / 'refactored' / 'outputs' / 'tuebingen_pair0001' / 'edges_FCI_20251226_012031.csv',
-        'llm_direction_path': PROJECT_ROOT / 'refactored' / 'outputs' / 'tuebingen_pair0001' / 'edges_FCI_LLM_GPT35_20251226_012044.csv',
+        'fci_skeleton_path': CONSTRAINT_OUTPUTS_DIR / 'tuebingen_pair0001' / 'edges_FCI_20251226_012031.csv',
+        'llm_direction_path': CONSTRAINT_OUTPUTS_DIR / 'tuebingen_pair0001' / 'edges_FCI_LLM_GPT35_20251226_012044.csv',
     },
     
     # Additional Tuebingen pairs (add more as needed)
@@ -464,8 +468,8 @@ def resolve_dataset_paths(dataset_name: str, dataset_cfg: Dict, sample_size: Opt
     Resolve data/fci/metadata paths for a dataset, with optional sample-size awareness.
 
     Behavior:
-      - pigs/link/tuebingen*: keep legacy paths unchanged.
-      - other datasets: prefer sample-size-specific files if present; fallback to legacy paths.
+      - pigs/link/tuebingen*: keep existing fixed paths unchanged.
+      - other datasets: prefer sample-size-specific files if present; fallback to historical fixed paths.
     """
     resolved = dict(dataset_cfg)
 
@@ -512,10 +516,10 @@ def resolve_dataset_paths(dataset_name: str, dataset_cfg: Dict, sample_size: Opt
 # OUTPUT DIRECTORIES
 # ============================================================================
 # FCI/LLM outputs
-FCI_OUTPUT_DIR = REFACTORED_DIR / 'outputs'
+FCI_OUTPUT_DIR = CONSTRAINT_OUTPUTS_DIR
 
 # Neural training results
-TRAINING_RESULTS_DIR = NEURO_SYMBOLIC_DIR / 'results'
+TRAINING_RESULTS_DIR = OUTPUTS_DIR / 'experiments'
 
 # ============================================================================
 # ADVANCED SETTINGS
@@ -687,9 +691,9 @@ def get_constraint_output_dir(dataset_name: Optional[str] = None, sample_size: O
     Get constraint-discovery outputs directory (FCI/RFCI/LLM).
 
     For sample-sweep datasets, use:
-      refactored/outputs/<dataset>/n_<sample_size>/
-    Otherwise keep legacy:
-      refactored/outputs/<dataset>/
+      outputs/constraints/<dataset>/n_<sample_size>/
+    Otherwise keep existing fixed layout:
+      outputs/constraints/<dataset>/
     """
     ds = str(dataset_name or DATASET)
     base = FCI_OUTPUT_DIR / ds

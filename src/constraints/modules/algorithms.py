@@ -342,7 +342,7 @@ class RFCIAlgorithm(BaseAlgorithm):
     RFCI (Tetrad) wrapper.
 
     Why: your installed causal-learn does not ship RFCI, and pigs/link graphs are too large for FCI.
-    This wrapper runs Java Tetrad RFCI via a tiny bundled runner (refactored/third_party/tetrad/RunRfci.java)
+    This wrapper runs Java Tetrad RFCI via a tiny bundled runner (third_party/tetrad/RunRfci.java)
     and returns a NetworkX graph with edge_type attributes compatible with existing reporters/prior_builder.
     """
     def __init__(self, dataframe, nodes, data_path: str | None = None):
@@ -372,10 +372,10 @@ class RFCIAlgorithm(BaseAlgorithm):
         max_disc_path_len : int
             Max discriminating path length (-1 = unlimited). Smaller speeds up.
         output_edges_path : str | None
-            Where to write edges CSV. If None, a temp file under refactored/third_party/tetrad/ is used.
+            Where to write edges CSV. If None, a temp file under third_party/tetrad/ is used.
         """
-        # Resolve paths
-        repo_root = Path(__file__).resolve().parents[1]  # refactored/
+        # Resolve paths in the new layout under src/constraints/third_party.
+        repo_root = Path(__file__).resolve().parents[1]  # src/constraints/
         tetrad_dir = repo_root / "third_party" / "tetrad"
         jar_path = tetrad_dir / "tetrad-lib-7.6.8-shaded.jar"
         java_src = tetrad_dir / "RunRfci.java"
@@ -564,7 +564,7 @@ class RFCIAlgorithm(BaseAlgorithm):
     @staticmethod
     def load_graph_from_report_txt(report_path: str, nodes: list[str] | None = None):
         """
-        Best-effort loader from refactored/report_RFCI_*.txt (human-readable report).
+        Best-effort loader from report_RFCI_*.txt (human-readable report).
 
         Parses lines like:
           [YES] A -> B

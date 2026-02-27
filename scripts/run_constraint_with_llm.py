@@ -13,6 +13,10 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
@@ -21,19 +25,21 @@ except ImportError:
     # dotenv not installed, will fall back to manual input
     pass
 
-# Import config and utils
-from config import get_output_dir
-from utils import get_active_data_loader, print_dataset_info
+import config
+from src.constraints.utils import get_active_data_loader, print_dataset_info
 
 # Import modules from the modules package
-from modules.data_loader import DataLoader, LUCASDataLoader, ALARMDataLoader
-from modules.algorithms import FCIAlgorithm, RFCIAlgorithm
-from modules.api_clients import GPT35Client
-from modules.prompt_generators import CoTPromptGenerator
-from modules.parsers import RobustDirectionParser
-from modules.validators import ChiSquareValidator
-from modules.visualizers import GraphVisualizer
-from modules.reporters import ReportGenerator
+from src.constraints.modules.algorithms import FCIAlgorithm, RFCIAlgorithm
+from src.constraints.modules.api_clients import GPT35Client
+from src.constraints.modules.prompt_generators import CoTPromptGenerator
+from src.constraints.modules.parsers import RobustDirectionParser
+from src.constraints.modules.validators import ChiSquareValidator
+from src.constraints.modules.visualizers import GraphVisualizer
+from src.constraints.modules.reporters import ReportGenerator
+
+
+def get_output_dir():
+    return str(config.get_constraint_output_dir(config.DATASET))
 
 
 class FCILLMPipeline:
@@ -51,8 +57,7 @@ class FCILLMPipeline:
         self.df, self.nodes = self.data_loader.load_csv()
 
         # Select constraint-based algorithm (FCI vs RFCI) based on unified config.
-        from config import get_current_dataset_config
-        ds_cfg = get_current_dataset_config()
+        ds_cfg = config.get_current_dataset_config()
         self.constraint_algo = str(ds_cfg.get("constraint_algo", "fci")).lower()
 
         if self.constraint_algo == "rfci":
@@ -96,7 +101,11 @@ class FCILLMPipeline:
         print("=" * 60)
 
         if self.constraint_algo == "rfci":
-            from config import RFCI_ALPHA, RFCI_DEPTH, RFCI_MAX_DISC_PATH_LEN, RFCI_MAX_ROWS, VERBOSE as CFG_VERBOSE
+            RFCI_ALPHA = config.RFCI_ALPHA
+            RFCI_DEPTH = config.RFCI_DEPTH
+            RFCI_MAX_DISC_PATH_LEN = config.RFCI_MAX_DISC_PATH_LEN
+            RFCI_MAX_ROWS = config.RFCI_MAX_ROWS
+            CFG_VERBOSE = config.VERBOSE
             out_dir = Path(get_output_dir())
 
             # Reuse cached RFCI outputs if present (avoid expensive reruns).
@@ -127,8 +136,7 @@ class FCILLMPipeline:
                 )
         else:
             # FCI uses chisq for discrete data
-            from config import FCI_INDEPENDENCE_TEST
-            self.graph = self.fci_algo.run(independence_test=FCI_INDEPENDENCE_TEST, alpha=fci_alpha)
+            self.graph = self.fci_algo.run(independence_test=config.FCI_INDEPENDENCE_TEST, alpha=fci_alpha)
 
         print(f"\n[{self.constraint_algo.upper()}] Initial graph has {self.graph.number_of_edges()} edges")
         self._print_fci_statistics()
@@ -171,8 +179,11 @@ class FCILLMPipeline:
             prompt = self.prompt_generator.generate(node_a, node_b)
 
             print(f"[LLM] Consulting GPT-3.5...")
-            from config import LLM_TEMPERATURE, LLM_MAX_TOKENS
-            response = self.llm_client.call(prompt, temperature=LLM_TEMPERATURE, max_tokens=LLM_MAX_TOKENS)
+            response = self.llm_client.call(
+                prompt,
+                temperature=config.LLM_TEMPERATURE,
+                max_tokens=config.LLM_MAX_TOKENS,
+            )
             print(f"[LLM] Response: {response[:100]}...")
 
             edge = self.parser.parse(response, node_a, node_b)
@@ -262,7 +273,7 @@ class FCILLMPipeline:
         self.reporter.save_edge_list(self.graph, model_name=model_name)
         
         # Save visualization (skip for Tuebingen dataset - only 2 nodes)
-        from config import DATASET
+        DATASET = config.DATASET
         if not DATASET.lower().startswith('tuebingen'):
             filename = f"causal_graph_{algo_tag.lower()}_llm_gpt35_{self.timestamp}"
             self.visualizer.visualize(self.graph, 
@@ -277,7 +288,9 @@ class FCILLMPipeline:
 
 def main():
     """Main function - runs FCI + LLM with parameters from config.py"""
-    from config import FCI_ALPHA, VALIDATION_ALPHA, RANDOM_SEED
+    FCI_ALPHA = config.FCI_ALPHA
+    VALIDATION_ALPHA = config.VALIDATION_ALPHA
+    RANDOM_SEED = config.RANDOM_SEED
 
     # Best-effort reproducibility
     try:

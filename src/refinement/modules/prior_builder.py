@@ -14,7 +14,7 @@ import pandas as pd
 from typing import Dict, List, Tuple, Set, Optional
 from pathlib import Path
 
-from modules.vstructure_postprocess import enforce_vstructure_on_skeleton_mask
+from src.refinement.modules.vstructure_postprocess import enforce_vstructure_on_skeleton_mask
 
 
 class PriorBuilder:
@@ -558,7 +558,7 @@ if __name__ == "__main__":
     
     # Add parent directory to path
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from modules.data_loader import CausalDataLoader
+    from src.refinement.modules.data_loader import CausalDataLoader
     
     print("Testing PriorBuilder with ALARM dataset\n")
     
