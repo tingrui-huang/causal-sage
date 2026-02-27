@@ -1,5 +1,5 @@
 """
-Main Program: FCI
+Main Program: Constraint Discovery (FCI/RFCI)
 """
 
 import sys
@@ -31,7 +31,7 @@ def get_output_dir():
 class ConstraintDiscoveryPipeline:
     def __init__(self, data_loader, output_dir=None):
         print("=" * 60)
-        print("Initializing FCI Pipeline")
+        print("Initializing Constraint Discovery Pipeline")
         print("=" * 60)
 
         self.output_dir = output_dir or get_output_dir()
@@ -92,7 +92,7 @@ class ConstraintDiscoveryPipeline:
         print(f"\n{'='*60}")
         print(f"{self.constraint_algo.upper()} Algorithm Completed")
         print(f"{'='*60}")
-        print(f"[TIME] FCI algorithm runtime: {self.algorithm_runtime_seconds:.2f}s")
+        print(f"[TIME] {self.constraint_algo.upper()} runtime: {self.algorithm_runtime_seconds:.2f}s")
         self._print_statistics()
         self._save_results()
     
@@ -148,9 +148,9 @@ class ConstraintDiscoveryPipeline:
 
 
 def main():
-    """Main function - runs FCI with parameters from config.py"""
-    FCI_INDEPENDENCE_TEST = config.FCI_INDEPENDENCE_TEST
-    FCI_ALPHA = config.FCI_ALPHA
+    """Main function - runs constraint discovery with parameters from config.py"""
+    fci_independence_test = config.FCI_INDEPENDENCE_TEST
+    fci_alpha = config.FCI_ALPHA
     GROUND_TRUTH_PATH = config.get_current_dataset_config()["ground_truth_path"]
     
     total_start = time.perf_counter()
@@ -159,8 +159,8 @@ def main():
     print_dataset_info()
     
     # Use parameters from config.py (non-interactive mode)
-    independence_test = FCI_INDEPENDENCE_TEST
-    alpha = FCI_ALPHA
+    independence_test = fci_independence_test
+    alpha = fci_alpha
     
     print(f"\nUsing parameters from config.py:")
     print(f"  Independence test: {independence_test}")
@@ -171,11 +171,11 @@ def main():
     pipeline = ConstraintDiscoveryPipeline(data_loader)
     
     # Run pipeline
-    print(f"\nStarting FCI algorithm...")
+    print(f"\nStarting {pipeline.constraint_algo.upper()} algorithm...")
     pipeline.run(independence_test=independence_test, alpha=alpha)
     
     print("\n" + "=" * 60)
-    print(f"FCI completed! Results saved to {get_output_dir()}/")
+    print(f"{pipeline.constraint_algo.upper()} completed! Results saved to {get_output_dir()}/")
     print("=" * 60)
     
     # === AUTO-EVALUATION ===
@@ -196,7 +196,7 @@ def main():
             
             # Print key metrics for easy reference
             print("\n" + "=" * 60)
-            print("KEY METRICS (FCI Only)")
+            print(f"KEY METRICS ({pipeline.constraint_algo.upper()} Only)")
             print("=" * 60)
             print(f"SHD:                  {metrics['shd']}")
             print(f"Unresolved Ratio:     {metrics['unresolved_ratio']*100:.1f}%")
@@ -205,23 +205,23 @@ def main():
             print("=" * 60)
             
         elif not latest_fci:
-            print("[WARN] Could not find FCI outputs for evaluation")
+            print(f"[WARN] Could not find {pipeline.constraint_algo.upper()} outputs for evaluation")
         elif not gt_path.exists():
             print(f"[WARN] Ground truth file not found: {gt_path}")
-            print("Update GROUND_TRUTH_PATH in config.py to enable evaluation")
+            print("Update ground_truth_path in config.py dataset settings to enable evaluation")
         evaluation_runtime_seconds = time.perf_counter() - eval_start
     except Exception as e:
         import traceback
         print(f"[ERROR] Evaluation failed: {e}")
         traceback.print_exc()
-        print("\nYou can run 'python evaluate_fci.py' manually later.")
+        print("\nYou can run 'python -m src.constraints.evaluate_fci' manually later.")
         evaluation_runtime_seconds = time.perf_counter() - eval_start
     
     total_runtime_seconds = time.perf_counter() - total_start
     
     # Persist timing information for reproducible reporting
     timing_payload = {
-        "algorithm": "FCI",
+        "algorithm": str(pipeline.constraint_algo).upper(),
         "timestamp": pipeline.timestamp,
         "output_dir": str(get_output_dir()),
         "independence_test": independence_test,
@@ -230,7 +230,7 @@ def main():
         "evaluation_runtime_seconds": float(evaluation_runtime_seconds) if evaluation_runtime_seconds is not None else None,
         "total_runtime_seconds": float(total_runtime_seconds),
     }
-    timing_file = os.path.join(get_output_dir(), f"timing_FCI_{pipeline.timestamp}.json")
+    timing_file = os.path.join(get_output_dir(), f"timing_{str(pipeline.constraint_algo).upper()}_{pipeline.timestamp}.json")
     with open(timing_file, "w", encoding="utf-8") as f:
         json.dump(timing_payload, f, indent=2, ensure_ascii=True)
     

@@ -43,13 +43,13 @@ from src.refinement.modules.vstructure_postprocess import postprocess_vstructure
 
 
 def run_experiment_for_dataset(dataset_name: str, 
-                               high_conf: float = 0.6,
-                               low_conf: float = 0.4,
-                               n_epochs: int = 200,
-                               run_mode: str = 'both',
+                               high_conf: Optional[float] = None,
+                               low_conf: Optional[float] = None,
+                               n_epochs: Optional[int] = None,
+                               run_mode: Optional[str] = None,
                                sample_size: Optional[int] = None,
                                random_seed: Optional[int] = None,
-                               auto_generate_constraint: bool = True,
+                               auto_generate_constraint: Optional[bool] = None,
                                vstructure_postprocess: bool = False,
                                vstructure_fci_csv_path: Optional[str] = None,
                                run_id: Optional[str] = None,
@@ -69,14 +69,15 @@ def run_experiment_for_dataset(dataset_name: str,
     
     Args:
         dataset_name: Name of dataset ('alarm', 'sachs', etc.)
-        high_conf: High confidence weight (default: 0.6, weaker than 0.7)
-        low_conf: Low confidence weight (default: 0.4, weaker than 0.3)
-        n_epochs: Number of training epochs
-        run_mode: 'both' | 'llm' | 'random'
+        high_conf: High confidence weight. If None, uses config default.
+        low_conf: Low confidence weight. If None, uses config default.
+        n_epochs: Number of training epochs. If None, uses config default.
+        run_mode: 'both' | 'llm' | 'random'. If None, uses config default.
         sample_size: Optional sample size override for sample-sweep datasets.
                     Ignored by pigs/link and other fixed-size datasets.
         random_seed: Random seed for reproducibility (training + random prior)
         auto_generate_constraint: If True, auto-run FCI/RFCI when constraint outputs are missing.
+                                 If None, uses config default.
         vstructure_postprocess: Whether to apply v-structure hard mask after training (scheme A)
         vstructure_fci_csv_path: Optional PAG CSV path (must include edge_type). If None, uses pure skeleton path.
         run_id: Optional run identifier used for outputs folder naming. If None, uses a timestamp.
@@ -99,6 +100,19 @@ def run_experiment_for_dataset(dataset_name: str,
     print("=" * 80)
     
     # Default: follow unified config (single source of truth)
+    defaults = config.get_llm_vs_random_defaults()
+    if high_conf is None:
+        high_conf = float(defaults["high_confidence"])
+    if low_conf is None:
+        low_conf = float(defaults["low_confidence"])
+    if n_epochs is None:
+        n_epochs = int(defaults["n_epochs"])
+    if run_mode is None:
+        run_mode = str(defaults["run_mode"])
+    if auto_generate_constraint is None:
+        auto_generate_constraint = bool(defaults.get("auto_generate_constraint", True))
+    auto_generate_constraint = bool(auto_generate_constraint)
+
     if random_seed is None:
         random_seed = config.RANDOM_SEED
     random_seed = int(random_seed)
@@ -317,39 +331,11 @@ def run_experiment_for_dataset(dataset_name: str,
     print(f"  Ground truth:    {dataset_config['ground_truth_path']}")
     print(f"  Requested mode:  {requested_mode} -> Effective mode: {effective_mode}")
 
-    # Get dataset-specific hyperparameters
-    if dataset_name == 'sachs':
-        lambda_group = 0.01
-        lambda_cycle = 5
-        edge_threshold = 0.1
-    elif dataset_name == 'alarm':
-        lambda_group = 0.01
-        lambda_cycle = 5
-        edge_threshold = 0.1
-    elif dataset_name == 'andes':
-        lambda_group = 0.01
-        lambda_cycle = 5
-        edge_threshold = 0.1
-    elif dataset_name == 'child':
-        lambda_group = 0.005
-        lambda_cycle = 5
-        edge_threshold = 0.1
-    elif dataset_name == 'hailfinder':
-        lambda_group = 0.01
-        lambda_cycle = 5
-        edge_threshold = 0.08
-    elif dataset_name == 'win95pts':
-        lambda_group = 0.01
-        lambda_cycle = 5
-        edge_threshold = 0.1
-    elif dataset_name == 'insurance':
-        lambda_group = 0.01
-        lambda_cycle = 5
-        edge_threshold = 0.1
-    else:
-        lambda_group = 0.01
-        lambda_cycle = 5
-        edge_threshold = 0.1
+    # Dataset-specific hyperparameters come from centralized config.
+    dataset_hparams = config.get_llm_vs_random_hparams(dataset_name)
+    lambda_group = float(dataset_hparams["lambda_group"])
+    lambda_cycle = float(dataset_hparams["lambda_cycle"])
+    edge_threshold = float(dataset_hparams["edge_threshold"])
 
     # Shared configuration (without skeleton paths - will be set per experiment)
     # Choose prediction mode automatically unless overridden.
@@ -367,12 +353,12 @@ def run_experiment_for_dataset(dataset_name: str,
         'ground_truth_path': str(dataset_config['ground_truth_path']),
         'ground_truth_type': dataset_config.get('ground_truth_type', 'bif'),
         'n_epochs': n_epochs,
-        'learning_rate': 0.01,
-        'n_hops': 1,
+        'learning_rate': float(config.LEARNING_RATE),
+        'n_hops': int(config.N_HOPS),
         'lambda_group': lambda_group,
         'lambda_cycle': lambda_cycle,
-        'lambda_skeleton': float(lambda_skeleton_override) if lambda_skeleton_override is not None else 0.1,
-        'monitor_interval': 20,
+        'lambda_skeleton': float(lambda_skeleton_override) if lambda_skeleton_override is not None else float(config.LAMBDA_SKELETON),
+        'monitor_interval': int(config.LOG_INTERVAL),
         'edge_threshold': edge_threshold,
         'high_confidence': high_conf,  # Pass to prior builder
         'low_confidence': low_conf,    # Pass to prior builder
@@ -666,9 +652,8 @@ def run_experiment_for_dataset(dataset_name: str,
     }
 
 
-def main():
-    """Run experiments on multiple datasets"""
-    # Optional CLI (mirrors run_multi_seed_random_prior.py style)
+def _build_cli_parser() -> argparse.ArgumentParser:
+    """Build CLI parser for llm-vs-random experiments."""
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("--datasets", nargs="+", type=str, default=None,
                     help="Datasets to run (e.g. --datasets alarm sachs). If omitted, uses the defaults below.")
@@ -756,101 +741,111 @@ def main():
         action="store_true",
         help="Override: disable DAG projection-on-cycle. If omitted, uses defaults below.",
     )
-    args = ap.parse_args()
+    return ap
 
-    # 'alarm','insurance'
-    datasets = ['insurance']
 
-    run_mode = 'both'
+def _resolve_runtime_settings(args: argparse.Namespace) -> Dict:
+    """Resolve effective runtime settings from config defaults + CLI overrides."""
+    defaults = config.get_llm_vs_random_defaults()
+    settings = {
+        "datasets": list(defaults["datasets"]),
+        "run_mode": str(defaults["run_mode"]),
+        "seeds": defaults["seeds"],
+        "high_confidence": float(defaults["high_confidence"]),
+        "low_confidence": float(defaults["low_confidence"]),
+        "n_epochs": int(defaults["n_epochs"]),
+        "reconstruction_mode": str(defaults["reconstruction_mode"]),
+        "lambda_group_override": defaults["lambda_group_override"],
+        "lambda_cycle_override": defaults["lambda_cycle_override"],
+        "lambda_skeleton_override": defaults["lambda_skeleton_override"],
+        "use_vstructure_postprocess": bool(defaults["use_vstructure_postprocess"]),
+        "vstructure_fci_csv_path": defaults["vstructure_fci_csv_path"],
+        "run_id": defaults["run_id"],
+        "vstructure_in_mask": bool(defaults["vstructure_in_mask"]),
+        "dag_check": bool(defaults["dag_check"]),
+        "dag_project_on_cycle": bool(defaults["dag_project_on_cycle"]),
+        "tie_blocks": bool(defaults["tie_blocks"]),
+        "tie_method": str(defaults["tie_method"]),
+        "batch_size": defaults["batch_size"],
+        "sample_size": defaults["sample_size"],
+    }
 
-    seeds: Union[int, List[int]] = [5]
-
-    high_confidence = 0.9
-    low_confidence = 0.1
-
-    n_epochs = 140
-
-    reconstruction_mode = "group_ce"
-
-    lambda_group_override = None
-    lambda_cycle_override = 5.0
-    lambda_skeleton_override = None
-    
-    # Optional postprocess
-    use_vstructure_postprocess = False
-    vstructure_fci_csv_path = None
-    run_id = None
-    
-    # Training-time v-structure hard mask (in-skeleton).
-    # True  = enforce inferred colliders directly in the skeleton mask during training.
-    # False = do not enforce (baseline).
-    vstructure_in_mask = True
-    
-    # DAG check (post-training): saves complete_dag_check.json in each run dir.
-    dag_check = True
-    
-    # If cyclic, optionally project to DAG by cutting weakest edge(s) on cycles.
-    dag_project_on_cycle = True
-    
-    # Ablation: block-tied adjacency (removes state-level degrees of freedom while staying in one-hot space)
-    tie_blocks = False
-    tie_method = "mean"
-    
-    # Mini-batch size (None = full-batch training)
-    batch_size = None
-    sample_size = None
-    # ============================================================================
-
-    # Apply CLI overrides (if provided)
     if args.datasets is not None:
-        datasets = args.datasets
+        settings["datasets"] = args.datasets
     if args.run_mode is not None:
-        run_mode = args.run_mode
+        settings["run_mode"] = args.run_mode
     if args.seeds is not None:
-        seeds = args.seeds
+        settings["seeds"] = args.seeds
     if args.epochs is not None:
-        n_epochs = int(args.epochs)
+        settings["n_epochs"] = int(args.epochs)
     if args.high_conf is not None:
-        high_confidence = float(args.high_conf)
+        settings["high_confidence"] = float(args.high_conf)
     if args.low_conf is not None:
-        low_confidence = float(args.low_conf)
+        settings["low_confidence"] = float(args.low_conf)
     if args.vstructure_postprocess:
-        use_vstructure_postprocess = True
+        settings["use_vstructure_postprocess"] = True
     if args.vstructure_fci_csv is not None:
-        vstructure_fci_csv_path = str(args.vstructure_fci_csv)
+        settings["vstructure_fci_csv_path"] = str(args.vstructure_fci_csv)
     if args.run_id is not None:
-        run_id = str(args.run_id)
+        settings["run_id"] = str(args.run_id)
     if args.tie_blocks:
-        tie_blocks = True
+        settings["tie_blocks"] = True
     if args.no_tie_blocks:
-        tie_blocks = False
+        settings["tie_blocks"] = False
     if args.tie_method is not None:
-        tie_method = str(args.tie_method)
+        settings["tie_method"] = str(args.tie_method)
     if args.reconstruction_mode is not None:
-        reconstruction_mode = str(args.reconstruction_mode)
+        settings["reconstruction_mode"] = str(args.reconstruction_mode)
     if args.lambda_group is not None:
-        lambda_group_override = float(args.lambda_group)
+        settings["lambda_group_override"] = float(args.lambda_group)
     if args.lambda_cycle is not None:
-        lambda_cycle_override = float(args.lambda_cycle)
+        settings["lambda_cycle_override"] = float(args.lambda_cycle)
     if args.lambda_skeleton is not None:
-        lambda_skeleton_override = float(args.lambda_skeleton)
+        settings["lambda_skeleton_override"] = float(args.lambda_skeleton)
     if args.batch_size is not None:
-        batch_size = int(args.batch_size)
+        settings["batch_size"] = int(args.batch_size)
     if args.sample_size is not None:
-        sample_size = int(args.sample_size)
+        settings["sample_size"] = int(args.sample_size)
     # CLI override (optional): otherwise keep the default configured above.
     if args.vstructure_in_mask:
-        vstructure_in_mask = True
+        settings["vstructure_in_mask"] = True
     if args.no_vstructure_in_mask:
-        vstructure_in_mask = False
+        settings["vstructure_in_mask"] = False
     if args.dag_check:
-        dag_check = True
+        settings["dag_check"] = True
     if args.no_dag_check:
-        dag_check = False
+        settings["dag_check"] = False
     if args.dag_project_on_cycle:
-        dag_project_on_cycle = True
+        settings["dag_project_on_cycle"] = True
     if args.no_dag_project_on_cycle:
-        dag_project_on_cycle = False
+        settings["dag_project_on_cycle"] = False
+    return settings
+
+
+def main():
+    """Run experiments on multiple datasets."""
+    args = _build_cli_parser().parse_args()
+    settings = _resolve_runtime_settings(args)
+    datasets = settings["datasets"]
+    run_mode = settings["run_mode"]
+    seeds: Union[int, List[int]] = settings["seeds"]
+    high_confidence = settings["high_confidence"]
+    low_confidence = settings["low_confidence"]
+    n_epochs = settings["n_epochs"]
+    reconstruction_mode = settings["reconstruction_mode"]
+    lambda_group_override = settings["lambda_group_override"]
+    lambda_cycle_override = settings["lambda_cycle_override"]
+    lambda_skeleton_override = settings["lambda_skeleton_override"]
+    use_vstructure_postprocess = settings["use_vstructure_postprocess"]
+    vstructure_fci_csv_path = settings["vstructure_fci_csv_path"]
+    run_id = settings["run_id"]
+    vstructure_in_mask = settings["vstructure_in_mask"]
+    dag_check = settings["dag_check"]
+    dag_project_on_cycle = settings["dag_project_on_cycle"]
+    tie_blocks = settings["tie_blocks"]
+    tie_method = settings["tie_method"]
+    batch_size = settings["batch_size"]
+    sample_size = settings["sample_size"]
 
     # Normalize seeds to list[int]
     if isinstance(seeds, int):

@@ -17,7 +17,6 @@ Codebase for PAG-to-DAG refinement experiments in CausalSAGE.
 - `data/<dataset>/`: dataset artifacts (`*_data_*.csv`, `metadata*.json`, `*.bif`)
 - `outputs/constraints/`: FCI/RFCI/LLM constraint outputs
 - `outputs/experiments/`: refinement experiment outputs
-- `legacy/` (optional): archived pre-refactor code kept only for historical reference
 
 ## Environment
 

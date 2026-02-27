@@ -1,11 +1,9 @@
 """
-Main Program: FCI + LLM (GPT-3.5)
+Main Program: Constraint Discovery + LLM (GPT-3.5)
 
 Strategy:
-1. FCI does the heavy lifting (finds skeleton, handles confounders)
-2. LLM (GPT-3.5) resolves ambiguous edges (o-o or o->)
-
-This combines statistical rigor with domain knowledge!
+1. Constraint discovery (FCI/RFCI) builds the initial PAG/skeleton.
+2. LLM (GPT-3.5) resolves ambiguous edges (o-o or o->).
 """
 
 import sys
@@ -42,10 +40,10 @@ def get_output_dir():
     return str(config.get_constraint_output_dir(config.DATASET))
 
 
-class FCILLMPipeline:
+class ConstraintLLMPipeline:
     def __init__(self, data_loader, api_key, output_dir=None):
         print("=" * 60)
-        print("Initializing FCI + LLM (GPT-3.5) Pipeline")
+        print("Initializing Constraint + LLM (GPT-3.5) Pipeline")
         print("=" * 60)
         
         self.output_dir = output_dir or get_output_dir()
@@ -90,7 +88,7 @@ class FCILLMPipeline:
     
     def run(self, fci_alpha=0.05, validation_alpha=0.05):
         print(f"\n{'='*60}")
-        print(f"Starting Hybrid FCI + LLM Pipeline")
+        print(f"Starting Hybrid Constraint + LLM Pipeline")
         print(f"FCI alpha: {fci_alpha}")
         print(f"Validation alpha: {validation_alpha}")
         print(f"{'='*60}\n")
@@ -287,7 +285,7 @@ class FCILLMPipeline:
 
 
 def main():
-    """Main function - runs FCI + LLM with parameters from config.py"""
+    """Main function - runs constraint discovery + LLM with parameters from config.py"""
     FCI_ALPHA = config.FCI_ALPHA
     VALIDATION_ALPHA = config.VALIDATION_ALPHA
     RANDOM_SEED = config.RANDOM_SEED
@@ -325,7 +323,7 @@ def main():
     
     # Initialize pipeline
     data_loader = get_active_data_loader()
-    pipeline = FCILLMPipeline(data_loader, api_key)
+    pipeline = ConstraintLLMPipeline(data_loader, api_key)
     
     # Run pipeline
     pipeline.run(fci_alpha=FCI_ALPHA, validation_alpha=VALIDATION_ALPHA)
