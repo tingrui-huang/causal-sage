@@ -1,0 +1,228 @@
+{
+  "dataset_name": "alarm",
+  "n_variables": 37,
+  "n_states": 105,
+  "variable_names": [
+    "HISTORY",
+    "CVP",
+    "PCWP",
+    "HYPOVOLEMIA",
+    "LVEDVOLUME",
+    "LVFAILURE",
+    "STROKEVOLUME",
+    "ERRLOWOUTPUT",
+    "HRBP",
+    "HREKG",
+    "ERRCAUTER",
+    "HRSAT",
+    "INSUFFANESTH",
+    "ANAPHYLAXIS",
+    "TPR",
+    "EXPCO2",
+    "KINKEDTUBE",
+    "MINVOL",
+    "FIO2",
+    "PVSAT",
+    "SAO2",
+    "PAP",
+    "PULMEMBOLUS",
+    "SHUNT",
+    "INTUBATION",
+    "PRESS",
+    "DISCONNECT",
+    "MINVOLSET",
+    "VENTMACH",
+    "VENTTUBE",
+    "VENTLUNG",
+    "VENTALV",
+    "ARTCO2",
+    "CATECHOL",
+    "HR",
+    "CO",
+    "BP"
+  ],
+  "state_mappings": {
+    "HISTORY": {
+      "0": "HISTORY_TRUE",
+      "1": "HISTORY_FALSE"
+    },
+    "CVP": {
+      "0": "CVP_LOW",
+      "1": "CVP_NORMAL",
+      "2": "CVP_HIGH"
+    },
+    "PCWP": {
+      "0": "PCWP_LOW",
+      "1": "PCWP_NORMAL",
+      "2": "PCWP_HIGH"
+    },
+    "HYPOVOLEMIA": {
+      "0": "HYPOVOLEMIA_TRUE",
+      "1": "HYPOVOLEMIA_FALSE"
+    },
+    "LVEDVOLUME": {
+      "0": "LVEDVOLUME_LOW",
+      "1": "LVEDVOLUME_NORMAL",
+      "2": "LVEDVOLUME_HIGH"
+    },
+    "LVFAILURE": {
+      "0": "LVFAILURE_TRUE",
+      "1": "LVFAILURE_FALSE"
+    },
+    "STROKEVOLUME": {
+      "0": "STROKEVOLUME_LOW",
+      "1": "STROKEVOLUME_NORMAL",
+      "2": "STROKEVOLUME_HIGH"
+    },
+    "ERRLOWOUTPUT": {
+      "0": "ERRLOWOUTPUT_TRUE",
+      "1": "ERRLOWOUTPUT_FALSE"
+    },
+    "HRBP": {
+      "0": "HRBP_LOW",
+      "1": "HRBP_NORMAL",
+      "2": "HRBP_HIGH"
+    },
+    "HREKG": {
+      "0": "HREKG_LOW",
+      "1": "HREKG_NORMAL",
+      "2": "HREKG_HIGH"
+    },
+    "ERRCAUTER": {
+      "0": "ERRCAUTER_TRUE",
+      "1": "ERRCAUTER_FALSE"
+    },
+    "HRSAT": {
+      "0": "HRSAT_LOW",
+      "1": "HRSAT_NORMAL",
+      "2": "HRSAT_HIGH"
+    },
+    "INSUFFANESTH": {
+      "0": "INSUFFANESTH_TRUE",
+      "1": "INSUFFANESTH_FALSE"
+    },
+    "ANAPHYLAXIS": {
+      "0": "ANAPHYLAXIS_TRUE",
+      "1": "ANAPHYLAXIS_FALSE"
+    },
+    "TPR": {
+      "0": "TPR_LOW",
+      "1": "TPR_NORMAL",
+      "2": "TPR_HIGH"
+    },
+    "EXPCO2": {
+      "0": "EXPCO2_ZERO",
+      "1": "EXPCO2_LOW",
+      "2": "EXPCO2_NORMAL",
+      "3": "EXPCO2_HIGH"
+    },
+    "KINKEDTUBE": {
+      "0": "KINKEDTUBE_TRUE",
+      "1": "KINKEDTUBE_FALSE"
+    },
+    "MINVOL": {
+      "0": "MINVOL_ZERO",
+      "1": "MINVOL_LOW",
+      "2": "MINVOL_NORMAL",
+      "3": "MINVOL_HIGH"
+    },
+    "FIO2": {
+      "0": "FIO2_LOW",
+      "1": "FIO2_NORMAL"
+    },
+    "PVSAT": {
+      "0": "PVSAT_LOW",
+      "1": "PVSAT_NORMAL",
+      "2": "PVSAT_HIGH"
+    },
+    "SAO2": {
+      "0": "SAO2_LOW",
+      "1": "SAO2_NORMAL",
+      "2": "SAO2_HIGH"
+    },
+    "PAP": {
+      "0": "PAP_LOW",
+      "1": "PAP_NORMAL",
+      "2": "PAP_HIGH"
+    },
+    "PULMEMBOLUS": {
+      "0": "PULMEMBOLUS_TRUE",
+      "1": "PULMEMBOLUS_FALSE"
+    },
+    "SHUNT": {
+      "0": "SHUNT_NORMAL",
+      "1": "SHUNT_HIGH"
+    },
+    "INTUBATION": {
+      "0": "INTUBATION_NORMAL",
+      "1": "INTUBATION_ESOPHAGEAL",
+      "2": "INTUBATION_ONESIDED"
+    },
+    "PRESS": {
+      "0": "PRESS_ZERO",
+      "1": "PRESS_LOW",
+      "2": "PRESS_NORMAL",
+      "3": "PRESS_HIGH"
+    },
+    "DISCONNECT": {
+      "0": "DISCONNECT_TRUE",
+      "1": "DISCONNECT_FALSE"
+    },
+    "MINVOLSET": {
+      "0": "MINVOLSET_LOW",
+      "1": "MINVOLSET_NORMAL",
+      "2": "MINVOLSET_HIGH"
+    },
+    "VENTMACH": {
+      "0": "VENTMACH_ZERO",
+      "1": "VENTMACH_LOW",
+      "2": "VENTMACH_NORMAL",
+      "3": "VENTMACH_HIGH"
+    },
+    "VENTTUBE": {
+      "0": "VENTTUBE_ZERO",
+      "1": "VENTTUBE_LOW",
+      "2": "VENTTUBE_NORMAL",
+      "3": "VENTTUBE_HIGH"
+    },
+    "VENTLUNG": {
+      "0": "VENTLUNG_ZERO",
+      "1": "VENTLUNG_LOW",
+      "2": "VENTLUNG_NORMAL",
+      "3": "VENTLUNG_HIGH"
+    },
+    "VENTALV": {
+      "0": "VENTALV_ZERO",
+      "1": "VENTALV_LOW",
+      "2": "VENTALV_NORMAL",
+      "3": "VENTALV_HIGH"
+    },
+    "ARTCO2": {
+      "0": "ARTCO2_LOW",
+      "1": "ARTCO2_NORMAL",
+      "2": "ARTCO2_HIGH"
+    },
+    "CATECHOL": {
+      "0": "CATECHOL_NORMAL",
+      "1": "CATECHOL_HIGH"
+    },
+    "HR": {
+      "0": "HR_LOW",
+      "1": "HR_NORMAL",
+      "2": "HR_HIGH"
+    },
+    "CO": {
+      "0": "CO_LOW",
+      "1": "CO_NORMAL",
+      "2": "CO_HIGH"
+    },
+    "BP": {
+      "0": "BP_LOW",
+      "1": "BP_NORMAL",
+      "2": "BP_HIGH"
+    }
+  },
+  "data_format": "one_hot_csv",
+  "source_file": "alarm_data_5000.csv",
+  "n_samples": 5000
+}

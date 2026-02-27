@@ -1,0 +1,182 @@
+{
+  "dataset_name": "insurance",
+  "n_variables": 27,
+  "n_states": 89,
+  "variable_names": [
+    "GoodStudent",
+    "Age",
+    "SocioEcon",
+    "RiskAversion",
+    "VehicleYear",
+    "ThisCarDam",
+    "RuggedAuto",
+    "Accident",
+    "MakeModel",
+    "DrivQuality",
+    "Mileage",
+    "Antilock",
+    "DrivingSkill",
+    "SeniorTrain",
+    "ThisCarCost",
+    "Theft",
+    "CarValue",
+    "HomeBase",
+    "AntiTheft",
+    "PropCost",
+    "OtherCarCost",
+    "OtherCar",
+    "MedCost",
+    "Cushioning",
+    "Airbag",
+    "ILiCost",
+    "DrivHist"
+  ],
+  "state_mappings": {
+    "GoodStudent": {
+      "0": "GoodStudent_True",
+      "1": "GoodStudent_False"
+    },
+    "Age": {
+      "0": "Age_Adolescent",
+      "1": "Age_Adult",
+      "2": "Age_Senior"
+    },
+    "SocioEcon": {
+      "0": "SocioEcon_Prole",
+      "1": "SocioEcon_Middle",
+      "2": "SocioEcon_UpperMiddle",
+      "3": "SocioEcon_Wealthy"
+    },
+    "RiskAversion": {
+      "0": "RiskAversion_Psychopath",
+      "1": "RiskAversion_Adventurous",
+      "2": "RiskAversion_Normal",
+      "3": "RiskAversion_Cautious"
+    },
+    "VehicleYear": {
+      "0": "VehicleYear_Current",
+      "1": "VehicleYear_Older"
+    },
+    "ThisCarDam": {
+      "0": "ThisCarDam_None",
+      "1": "ThisCarDam_Mild",
+      "2": "ThisCarDam_Moderate",
+      "3": "ThisCarDam_Severe"
+    },
+    "RuggedAuto": {
+      "0": "RuggedAuto_EggShell",
+      "1": "RuggedAuto_Football",
+      "2": "RuggedAuto_Tank"
+    },
+    "Accident": {
+      "0": "Accident_None",
+      "1": "Accident_Mild",
+      "2": "Accident_Moderate",
+      "3": "Accident_Severe"
+    },
+    "MakeModel": {
+      "0": "MakeModel_SportsCar",
+      "1": "MakeModel_Economy",
+      "2": "MakeModel_FamilySedan",
+      "3": "MakeModel_Luxury",
+      "4": "MakeModel_SuperLuxury"
+    },
+    "DrivQuality": {
+      "0": "DrivQuality_Poor",
+      "1": "DrivQuality_Normal",
+      "2": "DrivQuality_Excellent"
+    },
+    "Mileage": {
+      "0": "Mileage_FiveThou",
+      "1": "Mileage_TwentyThou",
+      "2": "Mileage_FiftyThou",
+      "3": "Mileage_Domino"
+    },
+    "Antilock": {
+      "0": "Antilock_True",
+      "1": "Antilock_False"
+    },
+    "DrivingSkill": {
+      "0": "DrivingSkill_SubStandard",
+      "1": "DrivingSkill_Normal",
+      "2": "DrivingSkill_Expert"
+    },
+    "SeniorTrain": {
+      "0": "SeniorTrain_True",
+      "1": "SeniorTrain_False"
+    },
+    "ThisCarCost": {
+      "0": "ThisCarCost_Thousand",
+      "1": "ThisCarCost_TenThou",
+      "2": "ThisCarCost_HundredThou",
+      "3": "ThisCarCost_Million"
+    },
+    "Theft": {
+      "0": "Theft_True",
+      "1": "Theft_False"
+    },
+    "CarValue": {
+      "0": "CarValue_FiveThou",
+      "1": "CarValue_TenThou",
+      "2": "CarValue_TwentyThou",
+      "3": "CarValue_FiftyThou",
+      "4": "CarValue_Million"
+    },
+    "HomeBase": {
+      "0": "HomeBase_Secure",
+      "1": "HomeBase_City",
+      "2": "HomeBase_Suburb",
+      "3": "HomeBase_Rural"
+    },
+    "AntiTheft": {
+      "0": "AntiTheft_True",
+      "1": "AntiTheft_False"
+    },
+    "PropCost": {
+      "0": "PropCost_Thousand",
+      "1": "PropCost_TenThou",
+      "2": "PropCost_HundredThou",
+      "3": "PropCost_Million"
+    },
+    "OtherCarCost": {
+      "0": "OtherCarCost_Thousand",
+      "1": "OtherCarCost_TenThou",
+      "2": "OtherCarCost_HundredThou",
+      "3": "OtherCarCost_Million"
+    },
+    "OtherCar": {
+      "0": "OtherCar_True",
+      "1": "OtherCar_False"
+    },
+    "MedCost": {
+      "0": "MedCost_Thousand",
+      "1": "MedCost_TenThou",
+      "2": "MedCost_HundredThou",
+      "3": "MedCost_Million"
+    },
+    "Cushioning": {
+      "0": "Cushioning_Poor",
+      "1": "Cushioning_Fair",
+      "2": "Cushioning_Good",
+      "3": "Cushioning_Excellent"
+    },
+    "Airbag": {
+      "0": "Airbag_True",
+      "1": "Airbag_False"
+    },
+    "ILiCost": {
+      "0": "ILiCost_Thousand",
+      "1": "ILiCost_TenThou",
+      "2": "ILiCost_HundredThou",
+      "3": "ILiCost_Million"
+    },
+    "DrivHist": {
+      "0": "DrivHist_Zero",
+      "1": "DrivHist_One",
+      "2": "DrivHist_Many"
+    }
+  },
+  "data_format": "one_hot_csv",
+  "source_file": "insurance_data_1000.csv",
+  "n_samples": 1000
+}
