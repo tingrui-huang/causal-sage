@@ -15,8 +15,8 @@ directed graphs (PAGs). Many downstream tasks require a fully oriented DAG.
 CausalSAGE refines PAG-derived structures through:
 
 - state-level expansion
-- differentiable block-wise optimization
 - directional priors (random or LLM-based)
+- differentiable block-wise optimization
 - cycle-aware DAG validation/projection
 
 ### What makes CausalSAGE different?
@@ -27,6 +27,7 @@ Unlike direct DAG learners, CausalSAGE:
 - preserves skeleton structure during refinement
 - resolves orientation ambiguity via differentiable optimization
 - remains stable on medium-scale graphs where direct learners can degrade
+- scales to graphs with 700+ variables given a fixed constraint skeleton
 
 ## Method Overview
 
